@@ -35,7 +35,7 @@
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/aegis-prime.git
+git clone https://github.com/AbhayXplor/aegis-prime.git
 cd aegis-prime
 
 # Install Frontend Dependencies
