@@ -1,0 +1,117 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Play, Square, Zap } from "lucide-react";
+import { supabase } from "../lib/supabase";
+
+interface SimulationControlProps {
+    isRealMode?: boolean;
+}
+
+export default function SimulationControl({ isRealMode = false }: SimulationControlProps) {
+    const [isRunning, setIsRunning] = useState(false);
+    const [status, setStatus] = useState("IDLE");
+
+    // 1. Sync with Supabase State
+    useEffect(() => {
+        const fetchState = async () => {
+            const { data } = await supabase.from('simulation_state').select('is_running').eq('id', 1).single();
+            if (data) setIsRunning(data.is_running);
+        };
+        fetchState();
+
+        const channel = supabase
+            .channel('sim-control')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'simulation_state' }, (payload) => {
+                setIsRunning(payload.new.is_running);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
+
+    // 2. Trigger Agent Loop
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+        let active = true;
+
+        const runSimulation = async () => {
+            if (!isRunning || !active) return;
+
+            setStatus("ATTACKING");
+            try {
+                await fetch('/api/rogue-agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'RANDOM' })
+                });
+            } catch (e) {
+                console.error("Agent Error:", e);
+            }
+
+            if (active && isRunning) {
+                timeoutId = setTimeout(runSimulation, 5000); // Wait 5s between attacks
+            }
+        };
+
+        if (isRunning) {
+            runSimulation();
+        } else {
+            setStatus("IDLE");
+        }
+
+        return () => {
+            active = false;
+            clearTimeout(timeoutId);
+        };
+    }, [isRunning]);
+
+    // 3. Toggle Handler
+    const toggleSimulation = async () => {
+        if (isRealMode) return; // Prevent simulation in real mode
+        const newState = !isRunning;
+        await supabase.from('simulation_state').upsert({ id: 1, is_running: newState });
+        setIsRunning(newState);
+    };
+
+    return (
+        <div className={`glass-panel p-6 rounded-xl relative overflow-hidden group ${isRealMode ? 'opacity-50 grayscale' : ''}`}>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyber-red/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            <div className="flex items-center justify-between relative z-10">
+                <div>
+                    <h3 className="text-sm font-bold text-white flex items-center tracking-wider">
+                        <Zap className={`w-4 h-4 mr-2 ${isRunning ? 'text-cyber-red animate-pulse' : 'text-cyber-cyan'}`} />
+                        AI EMPLOYEE SIMULATION
+                    </h3>
+                    <p className="text-[10px] text-gray-400 font-mono mt-1">
+                        STATUS: <span className={isRunning ? "text-cyber-red font-bold" : "text-gray-500"}>
+                            {isRealMode ? "DISABLED (REAL MODE)" : (status === "ATTACKING" ? "EXECUTING TRANSACTIONS..." : status)}
+                        </span>
+                    </p>
+                </div>
+
+                <button
+                    onClick={toggleSimulation}
+                    disabled={isRealMode}
+                    className={`px-4 py-2 rounded-lg font-bold text-xs tracking-wider flex items-center transition-all duration-300 ${isRealMode
+                        ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
+                        : isRunning
+                            ? "bg-cyber-red/20 text-cyber-red border border-cyber-red/50 hover:bg-cyber-red/30 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+                            : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 hover:text-white"
+                        }`}
+                >
+                    {isRunning ? (
+                        <>
+                            <Square className="w-3 h-3 mr-2 fill-current" /> STOP ATTACK
+                        </>
+                    ) : (
+                        <>
+                            <Play className="w-3 h-3 mr-2 fill-current" /> START SIMULATION
+                        </>
+                    )}
+                </button>
+            </div>
+        </div>
+    );
+}

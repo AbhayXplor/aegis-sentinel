@@ -1,0 +1,12 @@
+node_modules
+.env
+artifacts
+cache
+typechain
+typechain-types
+coverage
+coverage.json
+test-results.json
+*.swp
+*.bak
+.vscode
