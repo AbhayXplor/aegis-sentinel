@@ -2,8 +2,7 @@
 
 **Aegis Prime** is an AI-powered security firewall for blockchain transactions. It acts as a "Smart Vault" that intercepts transactions, analyzes them with Gemini AI for risk, and enforces granular policies (e.g., "Allow payments to OpenAI", "Block transfers > 1000 MNEE").
 
-![Aegis Prime Dashboard](https://i.imgur.com/placeholder.png) 
-*(Replace with your actual screenshot)*
+![Aegis Prime Dashboard](dashboard.png)
 
 ## 🚀 Features
 
