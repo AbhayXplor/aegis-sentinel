@@ -11,7 +11,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Contract Config
 const AEGIS_ADDRESS = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS!;
 const MNEE_ADDRESS = process.env.NEXT_PUBLIC_MNEE_ADDRESS!;
-const PRIVATE_KEY = process.env.ROGUE_AGENT_PRIVATE_KEY!;
+const PRIVATE_KEY = process.env.ROGUE_AGENT_PRIVATE_KEY;
+
+if (!PRIVATE_KEY || PRIVATE_KEY.length !== 66) { // Basic length check for 0x + 64 hex chars
+    console.error("Configuration Error: ROGUE_AGENT_PRIVATE_KEY is missing or invalid.");
+}
+
 const RPC_URLS = [
     "https://rpc.ankr.com/eth_sepolia",
     "https://1rpc.io/sepolia",
@@ -57,6 +62,9 @@ export async function POST(request: Request) {
         }
         if (!provider) throw new Error("All RPCs failed");
 
+        if (!PRIVATE_KEY) {
+            throw new Error("Server Configuration Error: ROGUE_AGENT_PRIVATE_KEY is missing.");
+        }
         const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
         const aegis = new ethers.Contract(AEGIS_ADDRESS, AEGIS_ABI, wallet);
         const mnee = new ethers.Contract(MNEE_ADDRESS, MNEE_ABI, wallet);
