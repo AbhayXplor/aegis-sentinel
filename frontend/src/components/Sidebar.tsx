@@ -1,13 +1,19 @@
 "use client";
 
-import { Home, DollarSign, Shield, FileText, Settings } from "lucide-react";
+import { DemoController } from "./DemoController";
 
 interface SidebarProps {
     currentView: string;
     setCurrentView: (view: string) => void;
+    demoProps?: {
+        onPhaseChange: (phase: number) => void;
+        currentBalance: string;
+        setSimulatedBalance: (balance: string) => void;
+        isPaused: boolean;
+    }
 }
 
-export function Sidebar({ currentView, setCurrentView }: SidebarProps) {
+export function Sidebar({ currentView, setCurrentView, demoProps }: SidebarProps) {
     const menuItems = [
         { id: 'dashboard', label: 'Overview', icon: Home },
         { id: 'payroll', label: 'Payroll', icon: DollarSign },
@@ -16,7 +22,7 @@ export function Sidebar({ currentView, setCurrentView }: SidebarProps) {
     ];
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-[#020617] border-r border-white/10">
             {/* Header */}
             <div className="h-16 flex items-center px-6 border-b border-white/10">
                 <div className="flex items-center gap-2">
@@ -49,7 +55,14 @@ export function Sidebar({ currentView, setCurrentView }: SidebarProps) {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-white/10 space-y-4">
+                {demoProps && (
+                    <DemoController
+                        {...demoProps}
+                        className="w-full"
+                    />
+                )}
+
                 <button
                     onClick={() => setCurrentView('settings')}
                     className="flex items-center gap-3 w-full px-2 py-2 text-sm text-slate-400 hover:text-slate-100 transition-colors"
