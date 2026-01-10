@@ -8,9 +8,10 @@ interface DemoControllerProps {
     currentBalance: string;
     setSimulatedBalance: (balance: string) => void;
     isPaused?: boolean;
+    className?: string;
 }
 
-export function DemoController({ onPhaseChange, currentBalance, setSimulatedBalance, isPaused = false }: DemoControllerProps) {
+export function DemoController({ onPhaseChange, currentBalance, setSimulatedBalance, isPaused = false, className = "" }: DemoControllerProps) {
     const [phase, setPhase] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -85,30 +86,27 @@ export function DemoController({ onPhaseChange, currentBalance, setSimulatedBala
     };
 
     return (
-        <div className="fixed bottom-8 right-8 z-50">
-            <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-2xl p-2 shadow-2xl flex items-center gap-4 pr-6">
-
-                {/* Current Phase Indicator */}
-                <div className="flex items-center gap-3 px-4 py-2 bg-black/40 rounded-xl border border-white/5">
-                    <div className="p-2 bg-white/5 rounded-lg">
-                        {phases[phase].icon}
-                    </div>
-                    <div>
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Current Step</div>
-                        <div className="text-sm font-bold text-white">{phases[phase].title}</div>
-                        <div className="text-xs text-zinc-400">{phases[phase].desc}</div>
-                    </div>
+        <div className={`bg-slate-900 border border-slate-800 rounded-lg p-4 ${className}`}>
+            {/* Current Phase Indicator */}
+            <div className="flex items-start gap-3 mb-4">
+                <div className="p-2 bg-slate-800 rounded-lg shrink-0">
+                    {phases[phase].icon}
                 </div>
+                <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Current Step</div>
+                    <div className="text-sm font-semibold text-white truncate">{phases[phase].title}</div>
+                    <div className="text-xs text-slate-400 line-clamp-2">{phases[phase].desc}</div>
+                </div>
+            </div>
 
-                {/* Controls */}
-                <div className="h-8 w-[1px] bg-white/10" />
-
+            {/* Controls */}
+            <div className="flex items-center gap-2">
                 <button
                     onClick={nextPhase}
                     disabled={isPaused}
-                    className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-lg ${isPaused
-                        ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
-                        : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20 active:scale-95"
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${isPaused
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-500 text-white"
                         }`}
                 >
                     {isPaused ? (
@@ -129,7 +127,7 @@ export function DemoController({ onPhaseChange, currentBalance, setSimulatedBala
                         setPhase(0);
                         onPhaseChange(0);
                     }}
-                    className="p-2 hover:bg-white/5 rounded-lg text-zinc-500 hover:text-white transition-colors"
+                    className="p-2 hover:bg-slate-800 rounded-md text-slate-500 hover:text-white transition-colors"
                     title="Reset Demo"
                 >
                     <SkipForward className="w-4 h-4" />

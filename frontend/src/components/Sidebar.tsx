@@ -1,0 +1,69 @@
+"use client";
+
+import { Home, DollarSign, Shield, FileText, Settings } from "lucide-react";
+
+interface SidebarProps {
+    currentView: string;
+    setCurrentView: (view: string) => void;
+}
+
+export function Sidebar({ currentView, setCurrentView }: SidebarProps) {
+    const menuItems = [
+        { id: 'dashboard', label: 'Overview', icon: Home },
+        { id: 'payroll', label: 'Payroll', icon: DollarSign },
+        { id: 'security', label: 'Security', icon: Shield },
+        { id: 'policy', label: 'Policies', icon: FileText },
+    ];
+
+    return (
+        <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="h-16 flex items-center px-6 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-semibold text-sm tracking-tight">Aegis CFO</span>
+                </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-4 py-6 space-y-1">
+                {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentView === item.id;
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => setCurrentView(item.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive
+                                ? "bg-blue-600 text-white"
+                                : "text-slate-400 hover:text-slate-100 hover:bg-white/5"
+                                }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {item.label}
+                        </button>
+                    );
+                })}
+            </nav>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-white/10">
+                <button
+                    onClick={() => setCurrentView('settings')}
+                    className="flex items-center gap-3 w-full px-2 py-2 text-sm text-slate-400 hover:text-slate-100 transition-colors"
+                >
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-medium text-white">
+                        AU
+                    </div>
+                    <div className="flex-1 text-left">
+                        <div className="text-xs font-medium text-white">Admin User</div>
+                        <div className="text-[10px] text-slate-500">Aegis System</div>
+                    </div>
+                    <Settings className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
+}

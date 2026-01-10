@@ -9,7 +9,7 @@ interface SimulationControlProps {
     isPaused?: boolean;
 }
 
-export default function SimulationControl({ isRealMode = false, isPaused = false }: SimulationControlProps) {
+export function SimulationControl({ isRealMode = false, isPaused = false }: SimulationControlProps) {
     const [isRunning, setIsRunning] = useState(false);
     const [status, setStatus] = useState("IDLE");
     const [attackType, setAttackType] = useState("PAYROLL");

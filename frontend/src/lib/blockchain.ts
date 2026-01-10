@@ -7,13 +7,13 @@ declare global {
     }
 }
 
-const MNEE_ABI = [
+export const MNEE_ABI = [
     "function balanceOf(address owner) view returns (uint256)",
     "function decimals() view returns (uint8)",
     "function symbol() view returns (string)"
 ];
 
-const AEGIS_ABI = [
+export const AEGIS_ABI = [
     "event Executed(address indexed target, bytes4 indexed selector, uint256 value, bytes data)",
     "event PolicyViolation(address indexed target, bytes4 indexed selector, string reason, bytes data)",
     "function setPolicy(address target, bytes4 selector, bool allowed) external",
@@ -295,5 +295,37 @@ export async function mintMNEE(tokenAddress: string, amount: string) {
         console.error("Error minting MNEE:", error);
         alert("Minting failed. Ensure you have Sepolia ETH for gas.");
         return false;
+    }
+}
+
+export async function executeTransfer(aegisAddress: string, tokenAddress: string, recipient: string, amount: string) {
+    try {
+        if (typeof window === 'undefined' || !window.ethereum) {
+            throw new Error("No crypto wallet found.");
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await checkAndSwitchNetwork(provider, false); // Sepolia only
+
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(aegisAddress, AEGIS_ABI, signer);
+
+        // Encode ERC20 transfer call
+        const ERC20_INTERFACE = new ethers.Interface([
+            "function transfer(address to, uint256 amount) external returns (bool)"
+        ]);
+        
+        const amountWei = ethers.parseUnits(amount, 18); // Assuming 18 decimals
+        const data = ERC20_INTERFACE.encodeFunctionData("transfer", [recipient, amountWei]);
+
+        // Execute via Aegis
+        const tx = await contract.execute(tokenAddress, data);
+        await tx.wait();
+        return tx.hash;
+    } catch (error: any) {
+        console.error("Error executing transfer:", error);
+        alert(`Error: ${error.message || "Failed to execute transfer"}`);
+        return null;
     }
 }

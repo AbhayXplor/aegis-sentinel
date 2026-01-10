@@ -1,113 +1,119 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Wallet, ShieldCheck, AlertTriangle, Coins, Plus, Building2, User, Power, Play } from "lucide-react";
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { Power, Play, Plus, Wallet, ShieldCheck } from "lucide-react";
 
 interface WalletStatusProps {
     balance: string;
-    ethBalance?: string;
-    riskLevel: "LOW" | "MEDIUM" | "HIGH";
-    securityScore?: number;
-    isScanning?: boolean;
-    address?: string;
-    isConnected?: boolean;
-    isRealMode?: boolean;
-    vaultBalance?: string;
+    ethBalance: string;
+    address: string;
+    riskLevel: string;
+    isConnected: boolean;
+    isRealMode: boolean;
+    vaultBalance: string;
+    isPaused: boolean;
+    setIsPaused: (paused: boolean) => void;
+    compact?: boolean;
 }
 
 export function WalletStatus({
     balance,
-    ethBalance = "0.00",
+    ethBalance,
+    address,
     riskLevel,
-    securityScore = 85,
-    isScanning = false,
-    address = "Not Connected",
-    isConnected = false,
-    isRealMode = false,
-    vaultBalance = "0.00",
-    isPaused = false,
-    setIsPaused
-}: WalletStatusProps & { isPaused: boolean; setIsPaused: (paused: boolean) => void }) {
+    isConnected,
+    isRealMode,
+    vaultBalance,
+    isPaused,
+    setIsPaused,
+    compact = false
+}: WalletStatusProps) {
     const [viewMode, setViewMode] = useState<"WALLET" | "VAULT">("WALLET");
 
     // Determine which balance to show
     const displayBalance = viewMode === "WALLET" ? balance : vaultBalance;
     const displayLabel = viewMode === "WALLET" ? "Wallet Balance" : "Vault Reserves";
+
+    if (compact) {
+        return (
+            <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-900/50 border border-white/5 rounded-full backdrop-blur-sm">
+                <div className="flex items-center gap-2 pr-3 border-r border-white/10">
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-600'}`} />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {isConnected ? 'Live' : 'Offline'}
+                    </span>
+                </div>
+
+                <button
+                    onClick={async () => {
+                        try {
+                            const { togglePause } = await import("@/lib/blockchain");
+                            const aegisAddress = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
+                            if (!aegisAddress) return alert("Aegis Address missing");
+
+                            const newPausedState = !isPaused;
+                            setIsPaused(newPausedState);
+
+                            const success = await togglePause(aegisAddress, newPausedState);
+                            if (!success) {
+                                setIsPaused(!newPausedState);
+                                alert("Kill Switch Transaction Failed");
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            setIsPaused(!isPaused);
+                        }
+                    }}
+                    className={`flex items-center gap-2 px-2 py-1 rounded-md transition-all active:scale-95 ${isPaused
+                            ? "text-emerald-400 hover:bg-emerald-400/10"
+                            : "text-red-400 hover:bg-red-400/10"
+                        }`}
+                >
+                    {isPaused ? <Play className="w-3 h-3" /> : <Power className="w-3 h-3" />}
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                        {isPaused ? "Resume" : "Kill Switch"}
+                    </span>
+                </button>
+            </div>
+        );
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="enterprise-card p-5 relative overflow-hidden"
+            className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-md relative overflow-hidden"
         >
-            {/* Mode Badge */}
-            <div className="absolute top-0 right-0">
-                <div className={`px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.2em] rounded-bl-lg ${isRealMode ? 'bg-emerald-500/20 text-emerald-400 border-l border-b border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border-l border-b border-blue-500/30'}`}>
-                    {isRealMode ? 'Production' : 'Development'}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Wallet className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{displayLabel}</p>
+                        <h3 className="text-2xl font-bold text-white tabular-nums">${displayBalance}</h3>
+                    </div>
                 </div>
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em] flex items-center gap-1.5">
-                    {viewMode === "WALLET" ? <Wallet className="w-3 h-3 text-zinc-400" /> : <Building2 className="w-3 h-3 text-zinc-400" />}
-                    {viewMode === "WALLET" ? "Connected Wallet" : "Aegis Vault"}
-                </h2>
-
-                <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
+                <div className="flex flex-col items-end gap-2">
                     <button
-                        onClick={() => setViewMode("WALLET")}
-                        className={`px-2 py-0.5 text-[8px] font-bold uppercase rounded-md transition-all ${viewMode === "WALLET" ? "bg-blue-500 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+                        onClick={() => setViewMode(viewMode === "WALLET" ? "VAULT" : "WALLET")}
+                        className="text-[9px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest transition-colors"
                     >
-                        Wallet
+                        Switch to {viewMode === "WALLET" ? "Vault" : "Wallet"}
                     </button>
-                    <button
-                        onClick={() => setViewMode("VAULT")}
-                        className={`px-2 py-0.5 text-[8px] font-bold uppercase rounded-md transition-all ${viewMode === "VAULT" ? "bg-emerald-500 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
-                    >
-                        Vault
-                    </button>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                        <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Secure</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Balance Section */}
-            <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white tracking-tighter">
-                        {parseFloat(displayBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <span className={`text-xs font-black tracking-widest ${isRealMode ? 'text-emerald-500' : 'text-blue-500'}`}>MNEE</span>
-                </div>
-                <div className="text-[9px] text-zinc-500 mt-1 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                    <div className="w-1 h-1 rounded-full bg-zinc-700" />
-                    ≈ {ethBalance} ETH (Gas)
-                </div>
-            </div>
-
-            {/* Actions */}
             <div className="grid grid-cols-2 gap-3 mb-6">
-                {!isRealMode && (
-                    <button
-                        onClick={async () => {
-                            try {
-                                const { mintMNEE } = await import("@/lib/blockchain");
-                                const mneeAddress = process.env.NEXT_PUBLIC_MNEE_ADDRESS;
-                                if (!mneeAddress) return alert("MNEE Address missing");
-
-                                const success = await mintMNEE(mneeAddress, "1000"); // Mint 1000 tokens
-                                if (success) alert("Minted 1,000 MNEE! Please wait for confirmation.");
-                            } catch (e) {
-                                console.error(e);
-                                alert("Minting failed.");
-                            }
-                        }}
-                        disabled={!isConnected}
-                        className="flex items-center justify-center gap-1.5 px-2 py-2 bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg border border-white/10 transition-all disabled:opacity-30 active:scale-95"
-                    >
-                        <Coins className="w-3 h-3" /> Mint
-                    </button>
-                )}
-
+                <div className="p-3 bg-white/5 border border-white/10 rounded-xl">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">ETH Balance</p>
+                    <p className="text-sm font-bold text-white">{ethBalance} ETH</p>
+                </div>
                 <button
                     onClick={async () => {
                         try {
@@ -122,63 +128,61 @@ export function WalletStatus({
                         }
                     }}
                     disabled={!isConnected}
-                    className={`${isRealMode ? 'col-span-2' : ''} flex items-center justify-center gap-1.5 px-2 py-2 bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg border border-white/10 transition-all disabled:opacity-30 active:scale-95`}
+                    className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-30 active:scale-95"
                 >
-                    <Plus className="w-3 h-3" /> {isRealMode ? 'Add Real' : 'Add Test'}
+                    <Plus className="w-3 h-3" /> Add MNEE
                 </button>
             </div>
 
             {/* Kill Switch */}
             {!isRealMode && isConnected && (
-                <div className="mb-6">
-                    <button
-                        onClick={async () => {
-                            try {
-                                const { togglePause } = await import("@/lib/blockchain");
-                                const aegisAddress = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
-                                if (!aegisAddress) return alert("Aegis Address missing");
+                <button
+                    onClick={async () => {
+                        try {
+                            const { togglePause } = await import("@/lib/blockchain");
+                            const aegisAddress = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
+                            if (!aegisAddress) return alert("Aegis Address missing");
 
-                                // Optimistic Update: Stop Sim Immediately
-                                const newPausedState = !isPaused;
-                                setIsPaused(newPausedState);
+                            const newPausedState = !isPaused;
+                            setIsPaused(newPausedState);
 
-                                const success = await togglePause(aegisAddress, newPausedState);
-                                if (!success) {
-                                    // Revert if tx fails
-                                    setIsPaused(!newPausedState);
-                                    alert("Kill Switch Transaction Failed");
-                                }
-                            } catch (e) {
-                                console.error(e);
-                                setIsPaused(!isPaused); // Revert on error
+                            const success = await togglePause(aegisAddress, newPausedState);
+                            if (!success) {
+                                setIsPaused(!newPausedState);
+                                alert("Kill Switch Transaction Failed");
                             }
-                        }}
-                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg border transition-all active:scale-95 ${isPaused
+                        } catch (e) {
+                            console.error(e);
+                            setIsPaused(!isPaused);
+                        }
+                    }}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-4 text-[11px] font-black uppercase tracking-[0.2em] rounded-xl border transition-all active:scale-95 ${isPaused
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
-                            : "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.2)] animate-pulse"
-                            }`}
-                    >
-                        {isPaused ? (
-                            <>
-                                <Play className="w-4 h-4" /> Resume Operations
-                            </>
-                        ) : (
-                            <>
-                                <Power className="w-4 h-4" /> Emergency Kill Switch
-                            </>
-                        )}
-                    </button>
-                </div>
+                            : "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                        }`}
+                >
+                    {isPaused ? (
+                        <>
+                            <Play className="w-4 h-4" /> Resume Operations
+                        </>
+                    ) : (
+                        <>
+                            <Power className="w-4 h-4" /> Emergency Kill Switch
+                        </>
+                    )}
+                </button>
             )}
 
             {/* Footer */}
-            <div className="pt-3 border-t border-zinc-800 flex items-center justify-between text-[10px]">
-                <div className="text-zinc-500 font-mono">
+            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                <div className="text-[10px] font-mono text-slate-500">
                     {address.slice(0, 6)}...{address.slice(-4)}
                 </div>
-                <div className="flex items-center gap-1">
-                    <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
-                    <span className="text-zinc-400 font-medium">{isConnected ? 'Connected' : 'Offline'}</span>
+                <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-slate-600'}`} />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {isConnected ? 'Connected' : 'Offline'}
+                    </span>
                 </div>
             </div>
         </motion.div>
