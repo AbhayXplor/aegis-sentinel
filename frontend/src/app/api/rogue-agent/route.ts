@@ -174,10 +174,23 @@ export async function POST(request: Request) {
                 const txResponse = await aegis.execute(MNEE_ADDRESS, data);
                 txHash = txResponse.hash;
 
+                // Log PENDING immediately so UI sees it
+                await supabase.from('transactions').insert({
+                    tx_hash: txHash,
+                    target: MNEE_ADDRESS,
+                    recipient: recipient,
+                    function_selector: selector,
+                    status: 'PENDING',
+                    ai_analysis: 'Broadcasting transaction...',
+                    value: value,
+                    is_simulated: true
+                });
+
                 // Background processing (don't await this)
                 (async () => {
                     try {
-                        const receipt = await txResponse.wait();
+                        console.log(`Waiting for tx ${txHash}...`);
+                        const receipt = await txResponse.wait(1);
                         const violation = receipt.logs.find((log: any) => {
                             try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
                         });
@@ -187,16 +200,9 @@ export async function POST(request: Request) {
                             ? 'Critical: Unauthorized MNEE transfer attempt to blacklisted wallet.'
                             : 'Warning: Unauthorized transfer succeeded. No guardrails active.';
 
-                        await supabase.from('transactions').insert({
-                            tx_hash: txHash,
-                            target: MNEE_ADDRESS,
-                            recipient: recipient,
-                            function_selector: selector,
-                            status: finalStatus,
-                            ai_analysis: finalAnalysis,
-                            value: value,
-                            is_simulated: true
-                        });
+                        await supabase.from('transactions')
+                            .update({ status: finalStatus, ai_analysis: finalAnalysis })
+                            .eq('tx_hash', txHash);
                     } catch (err) {
                         console.error("Background Tx Error", err);
                     }
@@ -228,9 +234,22 @@ export async function POST(request: Request) {
                 const txResponse = await aegis.execute(target, data);
                 txHash = txResponse.hash;
 
+                // Log PENDING immediately
+                await supabase.from('transactions').insert({
+                    tx_hash: txHash,
+                    target: target,
+                    recipient: recipient,
+                    function_selector: selector,
+                    status: 'PENDING',
+                    ai_analysis: 'Broadcasting transaction...',
+                    value: value,
+                    is_simulated: true
+                });
+
                 (async () => {
                     try {
-                        const receipt = await txResponse.wait();
+                        console.log(`Waiting for tx ${txHash}...`);
+                        const receipt = await txResponse.wait(1);
                         const violation = receipt.logs.find((log: any) => {
                             try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
                         });
@@ -240,16 +259,9 @@ export async function POST(request: Request) {
                             ? `Policy Block: ${KNOWN_ENTITIES[recipient] || 'Service'} payment requires explicit approval.`
                             : `Authorized: Payment to ${KNOWN_ENTITIES[recipient] || 'Service'} confirmed.`;
 
-                        await supabase.from('transactions').insert({
-                            tx_hash: txHash,
-                            target: target,
-                            recipient: recipient,
-                            function_selector: selector,
-                            status: finalStatus,
-                            ai_analysis: finalAnalysis,
-                            value: value,
-                            is_simulated: true
-                        });
+                        await supabase.from('transactions')
+                            .update({ status: finalStatus, ai_analysis: finalAnalysis })
+                            .eq('tx_hash', txHash);
                     } catch (err) {
                         console.error("Background Tx Error", err);
                     }
@@ -269,6 +281,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ status, txHash, analysis });
 
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("API Route Error:", error);
+        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }
