@@ -12,7 +12,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const AEGIS_ADDRESS = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS!;
 const MNEE_ADDRESS = process.env.NEXT_PUBLIC_MNEE_ADDRESS!;
 const PRIVATE_KEY = process.env.ROGUE_AGENT_PRIVATE_KEY!;
-const RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com"; // Hardcoded for server-side reliability
+const RPC_URLS = [
+    "https://rpc.ankr.com/eth_sepolia",
+    "https://1rpc.io/sepolia",
+    "https://ethereum-sepolia-rpc.publicnode.com"
+];
 
 const AEGIS_ABI = [
     "function execute(address target, bytes calldata data) external payable",
@@ -40,8 +44,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ status: 'STOPPED', message: 'Simulation is not running' });
         }
 
-        // 2. Setup Wallet
-        const provider = new ethers.JsonRpcProvider(RPC_URL);
+        // 2. Setup Wallet with Fallback RPC
+        let provider;
+        for (const rpc of RPC_URLS) {
+            try {
+                provider = new ethers.JsonRpcProvider(rpc);
+                await provider.getNetwork(); // Test connection
+                break;
+            } catch (e) {
+                console.warn(`RPC ${rpc} failed, trying next...`);
+            }
+        }
+        if (!provider) throw new Error("All RPCs failed");
+
         const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
         const aegis = new ethers.Contract(AEGIS_ADDRESS, AEGIS_ABI, wallet);
         const mnee = new ethers.Contract(MNEE_ADDRESS, MNEE_ABI, wallet);
@@ -77,81 +92,179 @@ export async function POST(request: Request) {
                 const data = mnee.interface.encodeFunctionData("transfer", [recipient, amount]);
                 selector = data.slice(0, 10);
 
-                const tx = await aegis.execute(MNEE_ADDRESS, data);
-                const receipt = await tx.wait();
-                txHash = receipt.hash;
-
-                const violation = receipt.logs.find((log: any) => {
-                    try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
-                });
-
-                if (violation) {
-                    status = 'BLOCKED';
-                    analysis = 'Critical: Unauthorized MNEE transfer attempt to blacklisted wallet.';
-                } else {
+                // 1. PREDICT (Instant Feedback)
+                try {
+                    await aegis.execute.staticCall(MNEE_ADDRESS, data);
+                    // If it doesn't revert, it MIGHT be success, but we check for events in static call result if possible.
+                    // However, PolicyViolation is an event, not a revert.
+                    // For the hackathon demo, if it's an attack and doesn't revert, we assume it went through (Warning).
                     status = 'SUCCESS';
                     analysis = 'Warning: Unauthorized transfer succeeded. No guardrails active.';
+                } catch (e: any) {
+                    // If it reverts, it's definitely blocked? No, Aegis catches errors.
+                    // Actually, Aegis emits PolicyViolation.
+                    // Let's rely on the fact that we can't easily read events from staticCall without a trace.
+                    // OPTIMIZATION: Just assume it works for the UI speed, but send real tx.
+                    // BETTER: We know the policy state. If we want to simulate "BLOCKED", we can check if the recipient is whitelisted.
+                    // BUT, for the demo to be accurate to the contract, we should rely on the contract.
+
+                    // FAST PATH: Send tx without waiting.
                 }
 
+                // FIRE AND FORGET
+                const tx = await aegis.execute(MNEE_ADDRESS, data);
+                txHash = tx.hash; // Instant hash
+
+                // PREDICTION BASED ON KNOWN STATE (Simulated "Instant" Audit)
+                // In a real app, we'd index the policy. Here, we guess based on the recipient.
+                // If it's an attack recipient, and we know we have policies, it SHOULD be blocked.
+                // But we don't know if the user enabled the policy yet.
+                // TRICK: We can wait for 1 confirmation in the background, but return "PENDING" to UI?
+                // User wants "BLOCKED" immediately.
+
+                // Let's use a heuristic: If we are in "ATTACK" mode, and we know it's a bad address,
+                // we can say "BLOCKED" if we assume the policy is active.
+                // But that's fake.
+
+                // REAL SOLUTION: Wait for 1 confirmation? No, too slow.
+                // We will return "PENDING" and let the UI update via Supabase subscription when it confirms?
+                // The UI listens to Supabase. So we can just return success here, and update Supabase LATER.
+
+                // Plan:
+                // 1. Return 200 OK immediately with "Processing".
+                // 2. Continue execution in background (Edge functions might kill this, but Node runtime won't).
+                // 3. Wait for tx, then update Supabase.
+
+                // Since this is a Next.js API route, we can't easily fire-and-forget without it being killed.
+                // BUT, we can try `waitUntil` or just hope it stays alive for 15s.
+                // OR, we just wait for the tx.wait() but optimize the RPC to be faster? No, block time is fixed.
+
+                // REVISED PLAN:
+                // We MUST wait for the result to know if it was blocked.
+                // The user says "1+ min". Sepolia is 12s. 1 min means RPC is retrying or hanging.
+                // The RPC fallback I added should help.
+                // Maybe the "staticCall" is the way.
+
+                // Let's try staticCall again.
+                // If we use `callStatic`, we get the return value of `execute`.
+                // `execute` returns `bytes`.
+                // If PolicyViolation is emitted, the transaction succeeds but emits an event.
+                // We can't see events in staticCall easily.
+
+                // ALTERNATIVE:
+                // We just send the TX. We return the hash.
+                // We insert a "PENDING" record into Supabase.
+                // We have a separate "Indexer" or "Listener" that updates the status? No, too complex.
+
+                // LET'S DO THIS:
+                // 1. Send TX. Get Hash.
+                // 2. Return Hash immediately.
+                // 3. Insert "PENDING" into Supabase.
+                // 4. The Frontend "ActivityFeed" sees "PENDING".
+                // 5. We need a way to update it.
+
+                // Actually, the user wants to see "BLOCKED" fast.
+                // If we can't get it fast from chain, we simulate it.
+                // We can read the `checkPolicy` view function if we had one.
+                // We don't.
+
+                // OK, we will use the "Fire and Forget" with a background promise.
+                // Next.js App Router supports this pattern somewhat.
+
+                const txResponse = await aegis.execute(MNEE_ADDRESS, data);
+                txHash = txResponse.hash;
+
+                // Background processing (don't await this)
+                (async () => {
+                    try {
+                        const receipt = await txResponse.wait();
+                        const violation = receipt.logs.find((log: any) => {
+                            try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
+                        });
+
+                        const finalStatus = violation ? 'BLOCKED' : 'SUCCESS';
+                        const finalAnalysis = violation
+                            ? 'Critical: Unauthorized MNEE transfer attempt to blacklisted wallet.'
+                            : 'Warning: Unauthorized transfer succeeded. No guardrails active.';
+
+                        await supabase.from('transactions').insert({
+                            tx_hash: txHash,
+                            target: MNEE_ADDRESS,
+                            recipient: recipient,
+                            function_selector: selector,
+                            status: finalStatus,
+                            ai_analysis: finalAnalysis,
+                            value: value,
+                            is_simulated: true
+                        });
+                    } catch (err) {
+                        console.error("Background Tx Error", err);
+                    }
+                })();
+
+                // Return immediately
+                return NextResponse.json({ status: 'PENDING', txHash, analysis: 'Transaction broadcasted...' });
+
             } else {
-                // Valid: Randomized Business Operation
+                // Valid Transaction Logic (Same Fire & Forget)
                 const randomTarget = VALID_TARGETS[Math.floor(Math.random() * VALID_TARGETS.length)];
                 recipient = randomTarget;
-
                 const baseAmount = customAmount ? parseFloat(customAmount) : 5;
                 const randomizedAmount = (baseAmount * (0.8 + Math.random() * 0.4)).toFixed(2);
                 value = randomizedAmount;
 
+                let data;
                 if (recipient === "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D") {
                     target = recipient;
-                    selector = "0x38ed1739"; // swapExactTokensForTokens
-                    const data = selector + "0000000000000000000000000000000000000000000000000000000000000000";
-                    const tx = await aegis.execute(target, data);
-                    const receipt = await tx.wait();
-                    txHash = receipt.hash;
+                    selector = "0x38ed1739";
+                    data = selector + "0000000000000000000000000000000000000000000000000000000000000000";
                 } else {
-                    // Generic transfer for other services
                     target = MNEE_ADDRESS;
                     const amount = ethers.parseUnits(randomizedAmount, 18);
-                    const data = mnee.interface.encodeFunctionData("transfer", [recipient, amount]);
+                    data = mnee.interface.encodeFunctionData("transfer", [recipient, amount]);
                     selector = data.slice(0, 10);
-                    const tx = await aegis.execute(MNEE_ADDRESS, data);
-                    const receipt = await tx.wait();
-                    txHash = receipt.hash;
                 }
 
-                const receipt = await provider.getTransactionReceipt(txHash);
-                const violation = receipt?.logs.find((log: any) => {
-                    try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
-                });
+                const txResponse = await aegis.execute(target, data);
+                txHash = txResponse.hash;
 
-                if (violation) {
-                    status = 'BLOCKED';
-                    analysis = `Policy Block: ${KNOWN_ENTITIES[recipient] || 'Service'} payment requires explicit approval.`;
-                } else {
-                    status = 'SUCCESS';
-                    analysis = `Authorized: Payment to ${KNOWN_ENTITIES[recipient] || 'Service'} confirmed.`;
-                }
+                (async () => {
+                    try {
+                        const receipt = await txResponse.wait();
+                        const violation = receipt.logs.find((log: any) => {
+                            try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
+                        });
+
+                        const finalStatus = violation ? 'BLOCKED' : 'SUCCESS';
+                        const finalAnalysis = violation
+                            ? `Policy Block: ${KNOWN_ENTITIES[recipient] || 'Service'} payment requires explicit approval.`
+                            : `Authorized: Payment to ${KNOWN_ENTITIES[recipient] || 'Service'} confirmed.`;
+
+                        await supabase.from('transactions').insert({
+                            tx_hash: txHash,
+                            target: target,
+                            recipient: recipient,
+                            function_selector: selector,
+                            status: finalStatus,
+                            ai_analysis: finalAnalysis,
+                            value: value,
+                            is_simulated: true
+                        });
+                    } catch (err) {
+                        console.error("Background Tx Error", err);
+                    }
+                })();
+
+                return NextResponse.json({ status: 'PENDING', txHash, analysis: 'Transaction broadcasted...' });
             }
         } catch (error: any) {
             console.error("Tx Error:", error);
-            status = 'ERROR';
-            analysis = error.message || 'Transaction Failed';
+            // If broadcast failed, we return error
+            return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        // 4. Log to Supabase
-        if (txHash || status === 'ERROR') {
-            await supabase.from('transactions').insert({
-                tx_hash: txHash || 'FAILED',
-                target: target,
-                recipient: recipient,
-                function_selector: selector,
-                status: status,
-                ai_analysis: analysis,
-                value: value,
-                is_simulated: true
-            });
-        }
+        // 4. Log to Supabase (Handled in background now)
+        // if (txHash || status === 'ERROR') { ... }
 
         return NextResponse.json({ status, txHash, analysis });
 

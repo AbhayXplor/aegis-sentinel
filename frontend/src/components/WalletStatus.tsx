@@ -138,10 +138,19 @@ export function WalletStatus({
                                 const aegisAddress = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
                                 if (!aegisAddress) return alert("Aegis Address missing");
 
-                                const success = await togglePause(aegisAddress, !isPaused);
-                                if (success) setIsPaused(!isPaused);
+                                // Optimistic Update: Stop Sim Immediately
+                                const newPausedState = !isPaused;
+                                setIsPaused(newPausedState);
+
+                                const success = await togglePause(aegisAddress, newPausedState);
+                                if (!success) {
+                                    // Revert if tx fails
+                                    setIsPaused(!newPausedState);
+                                    alert("Kill Switch Transaction Failed");
+                                }
                             } catch (e) {
                                 console.error(e);
+                                setIsPaused(!isPaused); // Revert on error
                             }
                         }}
                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg border transition-all active:scale-95 ${isPaused

@@ -59,7 +59,7 @@ export default function SimulationControl({ isRealMode = false, isPaused = false
             }
 
             if (active && isRunning) {
-                timeoutId = setTimeout(runSimulation, 5000); // Wait 5s between attacks
+                timeoutId = setTimeout(runSimulation, 1000); // Wait 1s between attacks
             }
         };
 
