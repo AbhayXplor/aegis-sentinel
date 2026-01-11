@@ -1,6 +1,6 @@
 # Aegis CFO: Autonomous Crypto Treasury
 
-![Aegis Dashboard](C:/Users/abhay/.gemini/antigravity/brain/17897b01-6036-4695-8d56-accd78d3609a/uploaded_image_1768126553266.png)
+![Aegis Dashboard](C:/Users/abhay/.gemini/antigravity/brain/17897b01-6036-4695-8d56-accd78d3609a/uploaded_image_1768128324754.png)
 
 **Aegis CFO** is an AI-native financial controller for on-chain organizations. It automates payroll, enforces spending policies, and detects security threats in real-time using a dedicated autonomous agent.
 
