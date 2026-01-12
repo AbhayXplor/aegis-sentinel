@@ -26,12 +26,31 @@
 *   **Live Asset Tracking**: Real-time ETH price fetching and MNEE valuation for accurate treasury reporting.
 *   **Live Threat Map**: Visualizes blocked attacks and authorized operations globally.
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Third-Party Services
 
-*   **Frontend**: Next.js 14, Tailwind CSS, Framer Motion, Recharts.
-*   **Blockchain**: Hardhat, Ethers.js, Solidity (Sepolia Testnet & Mainnet support).
-*   **AI**: Google Gemini 2.0 Flash (Policy Parsing & Risk Analysis).
-*   **Backend**: Supabase (Real-time logs, entity management, & analytics).
+Aegis Prime leverages several industry-leading services and libraries to provide a secure and intelligent experience:
+
+*   **AI Engine**: [Google Gemini 2.0 Flash](https://ai.google.dev/) — Powers the natural language policy parsing, risk auditing, and financial analysis.
+*   **Backend & Database**: [Supabase](https://supabase.com/) — Provides real-time audit logs, entity management, and secure data storage.
+*   **Blockchain Infrastructure**: 
+    *   [Ethers.js](https://docs.ethers.org/) — Core library for blockchain interactions.
+    *   [Hardhat](https://hardhat.org/) — Development environment for smart contracts.
+*   **Frontend Framework**: [Next.js 14](https://nextjs.org/) — React framework for the dashboard.
+*   **UI & Styling**:
+    *   [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework.
+    *   [Framer Motion](https://www.framer.com/motion/) — High-fidelity animations.
+    *   [Lucide React](https://lucide.dev/) — Iconography system.
+*   **Data Visualization**: [Recharts](https://recharts.org/) — Charting library for treasury analytics.
+
+---
+
+## ⚖️ Third-Party Licenses & Permissions
+
+All third-party SDKs and APIs used in this project are utilized under their respective developer terms and open-source licenses (MIT, Apache 2.0, or equivalent). 
+*   **Google Gemini API**: Used in accordance with the Google Generative AI Terms of Service.
+*   **Supabase SDK**: Licensed under MIT.
+*   **Ethers.js**: Licensed under MIT.
+*   **Next.js**: Licensed under MIT.
 
 ## 📦 Project Structure
 

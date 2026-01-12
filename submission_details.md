@@ -57,6 +57,17 @@ Aegis CFO acts as an intelligent layer on top of your crypto treasury. It moves 
 
 ---
 
+### 🔌 Third-Party APIs / SDKs
+*   **Google Gemini 2.0 Flash**: Used for the AI Policy Engine and real-time risk auditing.
+*   **Supabase**: Used for persistent audit logs, entity management, and financial data storage.
+*   **Ethers.js**: Used for all blockchain interactions and smart contract execution.
+*   **Next.js**: The core application framework.
+*   **Framer Motion**: Used for premium UI animations and transitions.
+*   **Recharts**: Used for treasury and asset allocation visualizations.
+*   **Lucide React**: Used for the iconography system.
+
+---
+
 ### 🔮 What's next for Aegis CFO
 *   **Multi-Agent Collaboration**: Allowing different AI agents to manage specific sub-budgets (e.g., a Marketing Agent vs. an Engineering Agent).
 *   **Advanced Yield Optimization**: Automatically moving idle treasury funds into safe yield-bearing protocols based on upcoming payroll obligations.
