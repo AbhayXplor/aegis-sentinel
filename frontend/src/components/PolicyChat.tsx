@@ -1,17 +1,54 @@
 "use client";
 
-import { useState } from "react";
-import { Send, Shield, CheckCircle, AlertTriangle, Loader2, Mic } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, Shield, CheckCircle, AlertTriangle, Loader2, Mic, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { parsePolicyIntent, PolicyIntent } from "@/lib/policyParser";
+import { createClient } from "@supabase/supabase-js";
 
 import { setPolicy, whitelistRecipient, setSpendingLimit } from "@/lib/blockchain";
+
+// Initialize Supabase Client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+interface StoredPolicy extends PolicyIntent {
+    id: number;
+}
 
 export function PolicyChat() {
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [proposedPolicy, setProposedPolicy] = useState<PolicyIntent | null>(null);
-    const [activePolicies, setActivePolicies] = useState<PolicyIntent[]>([]);
+    const [activePolicies, setActivePolicies] = useState<StoredPolicy[]>([]);
+
+    // Fetch policies on mount
+    useEffect(() => {
+        const fetchPolicies = async () => {
+            const { data, error } = await supabase
+                .from('policies')
+                .select('*')
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
+
+            if (data && !error) {
+                // Map Supabase data back to PolicyIntent structure
+                const mappedPolicies: StoredPolicy[] = data.map(p => ({
+                    id: p.id,
+                    description: p.intent,
+                    type: p.type as any || "RECIPIENT",
+                    target: p.target || "0x...",
+                    selector: p.selector,
+                    amount: p.amount,
+                    period: p.period,
+                    riskScore: 0
+                }));
+                setActivePolicies(mappedPolicies);
+            }
+        };
+        fetchPolicies();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,6 +60,40 @@ export function PolicyChat() {
         const result = await parsePolicyIntent(input);
         setProposedPolicy(result);
         setIsLoading(false);
+    };
+
+    const deletePolicy = async (id: number) => {
+        // Optimistic UI update
+        setActivePolicies(prev => prev.filter(p => p.id !== id));
+
+        const { error } = await supabase
+            .from('policies')
+            .update({ is_active: false })
+            .eq('id', id);
+
+        if (error) {
+            console.error("Failed to delete policy:", error);
+            // Revert if failed
+            alert("Failed to delete policy. Please try again.");
+            // Refresh list
+            const { data } = await supabase
+                .from('policies')
+                .select('*')
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
+            if (data) {
+                setActivePolicies(data.map(p => ({
+                    id: p.id,
+                    description: p.intent,
+                    type: p.type as any || "RECIPIENT",
+                    target: p.target || "0x...",
+                    selector: p.selector,
+                    amount: p.amount,
+                    period: p.period,
+                    riskScore: 0
+                })));
+            }
+        }
     };
 
     const confirmPolicy = async () => {
@@ -42,7 +113,21 @@ export function PolicyChat() {
             }
 
             if (success) {
-                setActivePolicies(prev => [proposedPolicy, ...prev]);
+                // Persist to Supabase for simulation and tab-switching
+                const { data, error } = await supabase.from('policies').insert({
+                    intent: proposedPolicy.description,
+                    target: proposedPolicy.target,
+                    selector: proposedPolicy.selector,
+                    type: proposedPolicy.type,
+                    amount: proposedPolicy.amount,
+                    period: proposedPolicy.period,
+                    is_active: true
+                }).select();
+
+                if (data && data[0]) {
+                    setActivePolicies(prev => [{ ...proposedPolicy, id: data[0].id }, ...prev]);
+                }
+
                 setProposedPolicy(null);
                 setInput("");
             } else {
@@ -70,19 +155,31 @@ export function PolicyChat() {
                 )}
 
                 <AnimatePresence>
-                    {activePolicies.map((policy, idx) => (
+                    {activePolicies.map((policy) => (
                         <motion.div
-                            key={idx}
+                            key={policy.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="p-2 rounded bg-green-500/5 border border-green-500/20 text-[10px]"
+                            exit={{ opacity: 0, x: 20 }}
+                            className="p-2 rounded bg-green-500/5 border border-green-500/20 text-[10px] group relative"
                         >
                             <div className="flex justify-between items-start">
-                                <span className="text-gray-300 font-mono">{policy.description}</span>
-                                <CheckCircle className="w-2.5 h-2.5 text-green-400 mt-0.5" />
+                                <span className="text-gray-300 font-mono pr-6">{policy.description}</span>
+                                <div className="flex items-center space-x-1">
+                                    <button
+                                        onClick={() => deletePolicy(policy.id)}
+                                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-all"
+                                    >
+                                        <Trash2 className="w-2.5 h-2.5" />
+                                    </button>
+                                    <CheckCircle className="w-2.5 h-2.5 text-green-400 mt-0.5" />
+                                </div>
                             </div>
                             <div className="mt-0.5 text-[8px] text-gray-500 font-mono">
-                                {policy.target.slice(0, 6)}...{policy.target.slice(-4)} :: {policy.selector}
+                                {policy.target && policy.target !== "0x..." ? (
+                                    `${policy.target.slice(0, 6)}...${policy.target.slice(-4)}`
+                                ) : "Global Policy"}
+                                {policy.selector ? ` :: ${policy.selector}` : ""}
                             </div>
                         </motion.div>
                     ))}

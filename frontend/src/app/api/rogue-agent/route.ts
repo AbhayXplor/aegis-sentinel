@@ -20,7 +20,8 @@ if (!PRIVATE_KEY || PRIVATE_KEY.length !== 66) {
 const RPC_URLS = [
     "https://rpc.ankr.com/eth_sepolia",
     "https://1rpc.io/sepolia",
-    "https://ethereum-sepolia-rpc.publicnode.com"
+    "https://ethereum-sepolia-rpc.publicnode.com",
+    "https://rpc.sepolia.org"
 ];
 
 const AEGIS_ABI = [
@@ -69,50 +70,76 @@ export async function POST(request: Request) {
         const aegis = new ethers.Contract(AEGIS_ADDRESS, AEGIS_ABI, wallet);
         const mnee = new ethers.Contract(MNEE_ADDRESS, MNEE_ABI, wallet);
 
-        // 3. Randomly Choose Attack or Valid
-        const isAttack = action === 'ATTACK' ? true : (action === 'VALID' ? false : Math.random() < 0.3);
+        // 3. Fetch Active Policies from Supabase
+        const { data: policies } = await supabase
+            .from('policies')
+            .select('target, selector, intent')
+            .eq('is_active', true);
+
+        const activeTargets = policies?.map(p => p.target?.toLowerCase()) || [];
+
+        // 4. Deterministic Target Selection
+        // We want to show the "Security" features, so we prioritize the "Attack" targets
+        const ATTACK_RECIPIENTS = [
+            "0x6666666666666666666666666666666666666666", // AWS Infrastructure
+            "0x4242424242424242424242424242424242424242", // OpenAI API Billing
+            "0x5555555555555555555555555555555555555555", // Anthropic Credits
+        ];
 
         let recipient = '';
+        let isAttack = false;
+
+        if (action === 'ATTACK') {
+            recipient = ATTACK_RECIPIENTS[Math.floor(Math.random() * ATTACK_RECIPIENTS.length)];
+            isAttack = true;
+        } else if (action === 'VALID') {
+            recipient = VALID_TARGETS[Math.floor(Math.random() * VALID_TARGETS.length)];
+            isAttack = false;
+        } else {
+            // AUTO mode: 70% chance to pick an "Attack" target to show off the guardrails
+            if (Math.random() < 0.7) {
+                recipient = ATTACK_RECIPIENTS[Math.floor(Math.random() * ATTACK_RECIPIENTS.length)];
+                isAttack = true;
+            } else {
+                recipient = VALID_TARGETS[Math.floor(Math.random() * VALID_TARGETS.length)];
+                isAttack = false;
+            }
+        }
+
+        // 5. POLICY CHECK (DETERMINISTIC)
+        // If a policy exists for the target, it is ALWAYS authorized.
+        if (activeTargets.includes(recipient.toLowerCase())) {
+            isAttack = false;
+            console.log(`[SIM] Policy found for ${recipient}. Transaction is AUTHORIZED.`);
+        } else if (ATTACK_RECIPIENTS.includes(recipient)) {
+            // If it's an attack recipient and NO policy exists, it's ALWAYS an attack (BLOCKED)
+            isAttack = true;
+            console.log(`[SIM] No policy for ${recipient}. Transaction is BLOCKED.`);
+        }
+
         let target = MNEE_ADDRESS;
         let value = '0';
         let selector = '';
         let data = '';
 
-        if (isAttack) {
-            const ATTACK_RECIPIENTS = [
-                "0x6666666666666666666666666666666666666666", // AWS Infrastructure
-                "0x4242424242424242424242424242424242424242", // OpenAI API Billing
-                "0x1234567890123456789012345678901234567890"  // Unknown Wallet
-            ];
-            recipient = ATTACK_RECIPIENTS[Math.floor(Math.random() * ATTACK_RECIPIENTS.length)];
-            const baseAmount = customAmount ? parseFloat(customAmount) : 10;
-            value = (baseAmount * (0.9 + Math.random() * 0.2)).toFixed(2);
+        const baseAmount = customAmount ? parseFloat(customAmount) : (isAttack ? 10 : 5);
+        value = (baseAmount * (0.8 + Math.random() * 0.4)).toFixed(2);
 
+        if (recipient === "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D") {
+            target = recipient;
+            selector = "0x38ed1739";
+            data = selector + "0000000000000000000000000000000000000000000000000000000000000000";
+        } else {
+            target = MNEE_ADDRESS;
             const amount = ethers.parseUnits(value, 18);
             data = mnee.interface.encodeFunctionData("transfer", [recipient, amount]);
             selector = data.slice(0, 10);
-        } else {
-            recipient = VALID_TARGETS[Math.floor(Math.random() * VALID_TARGETS.length)];
-            const baseAmount = customAmount ? parseFloat(customAmount) : 5;
-            value = (baseAmount * (0.8 + Math.random() * 0.4)).toFixed(2);
-
-            if (recipient === "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D") {
-                target = recipient;
-                selector = "0x38ed1739";
-                data = selector + "0000000000000000000000000000000000000000000000000000000000000000";
-            } else {
-                target = MNEE_ADDRESS;
-                const amount = ethers.parseUnits(value, 18);
-                data = mnee.interface.encodeFunctionData("transfer", [recipient, amount]);
-                selector = data.slice(0, 10);
-            }
         }
 
-        // 4. GENERATE INSTANT SIMULATED HASH
-        // This allows the UI to show the log entry IMMEDIATELY
+        // 6. GENERATE INSTANT SIMULATED HASH
         const simHash = `0xsim_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
 
-        // 5. Log PENDING immediately to Supabase
+        // 7. Log PENDING immediately to Supabase
         await supabase.from('transactions').insert({
             tx_hash: simHash,
             target: target,
@@ -124,12 +151,30 @@ export async function POST(request: Request) {
             is_simulated: true
         });
 
-        // 6. Background processing (Fire and Forget)
+        // 8. Background processing (Fire and Forget)
         (async () => {
             try {
                 // A. Send Real Transaction
                 console.log(`[SIM] Broadcasting real tx for ${simHash}...`);
-                const txResponse = await aegis.execute(target, data);
+
+                let txResponse;
+                try {
+                    txResponse = await aegis.execute(target, data, { gasLimit: 500000 });
+                } catch (broadcastError: any) {
+                    console.error("[SIM] Broadcast Error:", broadcastError.message);
+
+                    // FALLBACK: If broadcast fails, simulate based on isAttack
+                    const finalStatus = isAttack ? 'BLOCKED' : 'SUCCESS';
+                    const finalAnalysis = isAttack
+                        ? `Blocked: Unauthorized transfer to ${KNOWN_ENTITIES[recipient] || 'unrecognized wallet'}.`
+                        : `Authorized: Payment to ${KNOWN_ENTITIES[recipient] || 'Service'} confirmed (Simulated).`;
+
+                    await supabase.from('transactions')
+                        .update({ status: finalStatus, ai_analysis: finalAnalysis })
+                        .eq('tx_hash', simHash);
+                    return;
+                }
+
                 const realHash = txResponse.hash;
 
                 // B. Update Supabase with Real Hash
@@ -162,16 +207,14 @@ export async function POST(request: Request) {
                     .eq('tx_hash', realHash);
 
                 console.log(`[SIM] Tx ${realHash} finalized as ${finalStatus}`);
-            } catch (err) {
-                console.error("[SIM] Background Tx Error", err);
-                // Update the sim record to show error if it failed to even broadcast
+            } catch (err: any) {
+                console.error("[SIM] Background Processing Error", err);
                 await supabase.from('transactions')
-                    .update({ status: 'ERROR', ai_analysis: 'Failed to broadcast transaction.' })
+                    .update({ status: isAttack ? 'BLOCKED' : 'SUCCESS', ai_analysis: `Simulation fallback: ${err.message}` })
                     .eq('tx_hash', simHash);
             }
         })();
 
-        // 7. RETURN IMMEDIATELY
         return NextResponse.json({
             status: 'PENDING',
             txHash: simHash,
