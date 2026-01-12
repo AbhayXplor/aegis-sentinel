@@ -35,35 +35,13 @@ export function AnalyticsDashboard({ isRealMode }: { isRealMode?: boolean }) {
                 .order('created_at', { ascending: true });
 
             if (!txs || txs.length === 0) {
-                if (!isRealMode) {
-                    // MOCK DATA FOR DEMO MODE
-                    setStats({
-                        successCount: 124,
-                        blockedCount: 12,
-                        totalValue: 45000,
-                        targetData: [
-                            { name: 'Employees', value: 45 },
-                            { name: 'Vendors', value: 30 },
-                            { name: 'Infra', value: 25 },
-                        ],
-                        timeData: [
-                            { time: '10:00', value: 1200 },
-                            { time: '11:00', value: 3400 },
-                            { time: '12:00', value: 2100 },
-                            { time: '13:00', value: 5600 },
-                            { time: '14:00', value: 1800 },
-                        ]
-                    });
-                } else {
-                    // REAL MODE EMPTY STATE
-                    setStats({
-                        successCount: 0,
-                        blockedCount: 0,
-                        totalValue: 0,
-                        targetData: [],
-                        timeData: []
-                    });
-                }
+                setStats({
+                    successCount: 0,
+                    blockedCount: 0,
+                    totalValue: 0,
+                    targetData: [],
+                    timeData: []
+                });
                 return;
             }
 
