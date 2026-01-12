@@ -1,8 +1,8 @@
-# Aegis CFO: The Autonomous Financial Guardian
+# Aegis Prime: The Autonomous Financial Guardian
 
-**Aegis CFO** is an AI-powered financial operating system for crypto organizations. It moves beyond simple "multisig" wallets by acting as an intelligent, proactive CFO that manages payroll, analyzes runway, and enforces security policies in real-time.
+**Aegis Prime** is an AI-powered financial operating system for crypto organizations. It moves beyond simple "multisig" wallets by acting as an intelligent, proactive CFO that manages payroll, analyzes runway, and enforces security policies in real-time.
 
-![Aegis CFO Dashboard](frontend/public/dashboard-preview.png)
+![Aegis Prime Dashboard](frontend/public/aegis_hero_dashboard_1768213663855.png)
 
 ## 🚀 Key Features
 
@@ -11,21 +11,26 @@
 *   **Runway Forecasting**: Real-time calculation of financial survival based on live burn rates and treasury balance.
 *   **Shadow Spend Detection**: AI analysis of transaction history to identify and flag unlabelled recurring drains.
 
+![AI Policy Engine](frontend/public/aegis_ai_policy_1768213706344.png)
+
 ### 🛡️ Smart Vault Architecture
 *   **AegisGuard Contract**: A custom Solidity smart contract that holds funds and enforces AI-defined rules on-chain.
 *   **Allowance-Based Delegation**: The AI acts as a "Smart Delegate," executing approved recurring payments (like payroll) within strict, user-defined limits.
 *   **MNEE Token Native**: Built from the ground up to manage and protect MNEE token treasuries.
 
+![Blockchain Security](frontend/public/aegis_security_shield_1768213680104.png)
+
 ### 📊 Institutional-Grade Dashboard
-*   **"CFO" View**: Aggregated financial health, not just a list of transactions.
+*   **Dual-Mode Interface**: Seamlessly switch between **Real Mode** (Live Mainnet/Sepolia data) and **Demo Mode** (High-fidelity simulation).
+*   **Redesigned Payroll Agent**: Manage specific recurring payment rules (Daily, Weekly, Monthly) with automated execution and on-chain enforcement.
+*   **Live Asset Tracking**: Real-time ETH price fetching and MNEE valuation for accurate treasury reporting.
 *   **Live Threat Map**: Visualizes blocked attacks and authorized operations globally.
-*   **Payroll Simulator**: Test automated disbursement logic before deploying real funds.
 
 ## 🛠️ Tech Stack
 
 *   **Frontend**: Next.js 14, Tailwind CSS, Framer Motion, Recharts.
-*   **Blockchain**: Hardhat, Ethers.js, Solidity (Sepolia Testnet).
-*   **AI**: Google Gemini 2.5 Flash (Policy Parsing & Risk Analysis).
+*   **Blockchain**: Hardhat, Ethers.js, Solidity (Sepolia Testnet & Mainnet support).
+*   **AI**: Google Gemini 2.0 Flash (Policy Parsing & Risk Analysis).
 *   **Backend**: Supabase (Real-time logs, entity management, & analytics).
 
 ## 📦 Project Structure
@@ -37,7 +42,7 @@
 
 ### Prerequisites
 *   Node.js 18+
-*   MetaMask Wallet (Sepolia Network)
+*   MetaMask Wallet
 *   Gemini API Key
 *   Supabase Project
 
@@ -62,6 +67,7 @@ NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 NEXT_PUBLIC_SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+NEXT_PUBLIC_MAINNET_RPC=https://eth.llamarpc.com
 NEXT_PUBLIC_MNEE_ADDRESS=0x...
 NEXT_PUBLIC_AEGIS_GUARD_ADDRESS=0x...
 ```
