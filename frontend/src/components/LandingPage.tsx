@@ -54,12 +54,19 @@ export function LandingPage({ onEnter }: LandingPageProps) {
                         onClick={onEnter}
                         className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-xl shadow-blue-500/20 flex items-center gap-2 group"
                     >
-                        <span>Get Started</span>
+                        <span>Launch App</span>
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <button className="px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white font-bold rounded-xl transition-all border border-white/10 backdrop-blur-sm">
-                        View Demo
-                    </button>
+                    <div className="flex flex-col items-start gap-2 p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm text-left max-w-xs">
+                        <div className="flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
+                            <Zap className="w-3 h-3" /> Demo Instructions
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            1. Launch App & Connect Wallet (Sepolia).<br />
+                            2. Click <strong>"Mint Demo MNEE"</strong> in Dashboard.<br />
+                            3. Deposit to Vault & Run Payroll Agent.
+                        </p>
+                    </div>
                 </div>
 
                 {/* Feature Grid */}

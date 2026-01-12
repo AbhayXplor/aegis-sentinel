@@ -6,7 +6,7 @@ import { WalletStatus } from "../WalletStatus";
 import { TreasuryChart } from "../dashboard/TreasuryChart";
 import { AllocationChart } from "../dashboard/AllocationChart";
 import { MetricCard } from "../dashboard/MetricCard";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, ShieldCheck, CreditCard } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, ShieldCheck, CreditCard, Lock } from "lucide-react";
 import { getEthPrice } from "@/lib/price";
 
 interface DashboardViewProps {
@@ -205,14 +205,51 @@ export function DashboardView(props: DashboardViewProps) {
                     {/* Row 3: Bottom Details */}
                     <div className="col-span-12 md:col-span-8 bg-[#0B1121] border border-white/5 rounded-2xl p-6">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-white font-bold">Wallet Balance</h3>
-                            <button className="text-blue-400 text-xs hover:text-blue-300">View All</button>
+                            <h3 className="text-white font-bold">Asset Breakdown</h3>
+                            {!props.isRealMode && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
+                                        Demo Mode: Sepolia
+                                    </span>
+                                </div>
+                            )}
                         </div>
+
+                        {!props.isRealMode && (
+                            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
+                                <div className="p-2 bg-blue-500/20 rounded-lg">
+                                    <Activity className="w-4 h-4 text-blue-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-white mb-1">How to Test Demo Mode</h4>
+                                    <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside">
+                                        <li>Switch your wallet to <strong>Sepolia Testnet</strong>.</li>
+                                        <li>Click <strong>Mint Demo MNEE</strong> below to get test tokens.</li>
+                                        <li>Go to <strong>Settings</strong> to deposit MNEE into the Vault.</li>
+                                        <li>Run the <strong>Payroll Agent</strong> to see automated payments.</li>
+                                    </ol>
+                                    <button
+                                        onClick={async () => {
+                                            const { mintMNEE } = await import("@/lib/blockchain");
+                                            const { MOCK_MNEE_ADDRESS } = await import("@/lib/constants");
+                                            if (MOCK_MNEE_ADDRESS) {
+                                                await mintMNEE(MOCK_MNEE_ADDRESS, "10000");
+                                                window.location.reload(); // Refresh to see balance
+                                            }
+                                        }}
+                                        className="mt-3 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors"
+                                    >
+                                        Mint 10,000 Demo MNEE
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="text-xs text-slate-500 border-b border-white/5">
-                                        <th className="pb-3 font-medium">Wallet</th>
+                                        <th className="pb-3 font-medium">Asset</th>
                                         <th className="pb-3 font-medium">Balance</th>
                                         <th className="pb-3 font-medium text-right">% Portfolio</th>
                                     </tr>
@@ -224,7 +261,7 @@ export function DashboardView(props: DashboardViewProps) {
                                                 <Activity className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <div className="text-white font-medium">Ethereum</div>
+                                                <div className="text-white font-medium">Ethereum (Wallet)</div>
                                                 <div className="text-xs text-slate-500">{props.ethBalance} ETH</div>
                                             </div>
                                         </td>
@@ -241,7 +278,7 @@ export function DashboardView(props: DashboardViewProps) {
                                                 <ShieldCheck className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <div className="text-white font-medium">MNEE Stablecoin</div>
+                                                <div className="text-white font-medium">MNEE (Wallet)</div>
                                                 <div className="text-xs text-slate-500">{props.balance} MNEE</div>
                                             </div>
                                         </td>
@@ -250,6 +287,21 @@ export function DashboardView(props: DashboardViewProps) {
                                             {parseFloat(totalAssets) > 0
                                                 ? `${((parseFloat(props.balance) * 1 / parseFloat(totalAssets)) * 100).toFixed(2)}%`
                                                 : "0.00%"}
+                                        </td>
+                                    </tr>
+                                    <tr className="border-b border-white/5 group hover:bg-white/[0.02]">
+                                        <td className="py-4 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
+                                                <Lock className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <div className="text-white font-medium">MNEE (Vault)</div>
+                                                <div className="text-xs text-slate-500">{props.vaultBalance} MNEE</div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 text-white font-medium">${props.vaultBalance}</td>
+                                        <td className="py-4 text-right text-emerald-400 font-medium">
+                                            -
                                         </td>
                                     </tr>
                                 </tbody>
