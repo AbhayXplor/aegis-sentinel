@@ -30,7 +30,7 @@ export function ShadowSpendDetector({ isRealMode }: { isRealMode: boolean }) {
             .select('*')
             .eq('status', 'SUCCESS');
 
-        if (txs) {
+        if (txs && txs.length > 0) {
             const spendMap: Record<string, { total: number, count: number, last: string }> = {};
 
             txs.forEach(tx => {
@@ -55,6 +55,14 @@ export function ShadowSpendDetector({ isRealMode }: { isRealMode: boolean }) {
                 }));
 
             setShadowSpends(detected);
+        } else if (!isRealMode) {
+            // MOCK DATA FOR DEMO MODE
+            setShadowSpends([
+                { address: "0x71C...9A21", totalAmount: 4500, count: 5, lastSeen: "2 days ago" },
+                { address: "0x3D2...1B4C", totalAmount: 1200, count: 3, lastSeen: "5 hours ago" }
+            ]);
+        } else {
+            setShadowSpends([]);
         }
 
         setIsLoading(false);

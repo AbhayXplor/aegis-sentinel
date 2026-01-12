@@ -24,8 +24,8 @@ export function PayrollView({ isRealMode, isPaused, balance }: PayrollViewProps)
                     {/* New Treasury Funding Card */}
                     <TreasuryFunding isRealMode={isRealMode} />
 
-                    {/* Auto-Pilot Agent (Real Mode Only) */}
-                    {isRealMode && <PayrollAgent />}
+                    {/* Auto-Pilot Agent (Both Modes) */}
+                    <PayrollAgent isRealMode={isRealMode} />
 
                     <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden backdrop-blur-md">
                         <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">

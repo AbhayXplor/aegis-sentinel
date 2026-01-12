@@ -1,7 +1,7 @@
 "use client";
 
 import { DemoController } from "./DemoController";
-import { Home, DollarSign, Shield, FileText, Settings } from "lucide-react";
+import { Home, DollarSign, Shield, FileText, Settings, Activity } from "lucide-react";
 
 interface SidebarProps {
     currentView: string;
@@ -21,7 +21,7 @@ export function Sidebar({ currentView, setCurrentView, isRealMode, setIsRealMode
         { id: 'dashboard', label: 'Overview', icon: Home },
         { id: 'payroll', label: 'Payroll', icon: DollarSign },
         { id: 'security', label: 'Security', icon: Shield },
-        { id: 'policy', label: 'Policies', icon: FileText },
+        { id: 'analytics', label: 'Analytics', icon: Activity },
     ];
 
     return (

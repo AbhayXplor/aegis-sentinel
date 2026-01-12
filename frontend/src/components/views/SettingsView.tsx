@@ -1,12 +1,9 @@
 "use client";
 
-import { Settings, Moon, Sun, Shield, User, Bell, Globe } from "lucide-react";
-import { useState } from "react";
+import { Shield, User, Power } from "lucide-react";
 import { PageHeader } from "../PageHeader";
 
 export function SettingsView() {
-    const [darkMode, setDarkMode] = useState(true);
-
     return (
         <div className="space-y-8">
             <PageHeader
@@ -18,10 +15,7 @@ export function SettingsView() {
                 {/* Left Column: Categories */}
                 <div className="lg:col-span-1 space-y-4">
                     {[
-                        { icon: User, label: "Account Profile", active: true },
-                        { icon: Bell, label: "Notifications", active: false },
-                        { icon: Shield, label: "Security & Privacy", active: false },
-                        { icon: Globe, label: "Network Settings", active: false },
+                        { icon: User, label: "Account & System", active: true },
                     ].map((item, i) => (
                         <button
                             key={i}
@@ -38,28 +32,6 @@ export function SettingsView() {
 
                 {/* Right Column: Settings Content */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Appearance Section */}
-                    <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6">Appearance</h3>
-
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-blue-500/10 rounded-lg">
-                                    {darkMode ? <Moon className="w-4 h-4 text-blue-400" /> : <Sun className="w-4 h-4 text-yellow-400" />}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-white">Dark Mode</p>
-                                    <p className="text-[10px] text-slate-500">Adjust the interface theme</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setDarkMode(!darkMode)}
-                                className={`w-12 h-6 rounded-full p-1 transition-all ${darkMode ? "bg-blue-600" : "bg-slate-700"}`}
-                            >
-                                <div className={`w-4 h-4 bg-white rounded-full transition-all ${darkMode ? "translate-x-6" : "translate-x-0"}`} />
-                            </button>
-                        </div>
-                    </div>
 
                     {/* Account Info Section */}
                     <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
@@ -87,9 +59,12 @@ export function SettingsView() {
                     {/* Danger Zone */}
                     <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-6 backdrop-blur-md">
                         <h3 className="text-sm font-bold text-rose-400 uppercase tracking-wider mb-4">Danger Zone</h3>
-                        <p className="text-xs text-slate-500 mb-6">Permanently delete all local cache and reset the application state.</p>
-                        <button className="px-4 py-2 bg-rose-600/10 border border-rose-600/50 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all">
-                            Reset Application
+                        <p className="text-xs text-slate-500 mb-6">Disconnect your wallet and clear local session data.</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="flex items-center gap-2 px-4 py-2 bg-rose-600/10 border border-rose-600/50 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
+                        >
+                            <Power className="w-3 h-3" /> Reset Application
                         </button>
                     </div>
                 </div>

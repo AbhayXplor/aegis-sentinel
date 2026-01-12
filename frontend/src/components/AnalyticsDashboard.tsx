@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { Activity, ShieldCheck, ShieldAlert, TrendingUp } from "lucide-react";
 import { KNOWN_ENTITIES } from "@/lib/constants";
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ isRealMode }: { isRealMode?: boolean }) {
     const [stats, setStats] = useState<{
         successCount: number;
         blockedCount: number;
@@ -26,12 +26,46 @@ export function AnalyticsDashboard() {
 
     useEffect(() => {
         const fetchData = async () => {
+            // In Real Mode, we only want real data. If no real data, show empty state.
+            // In Demo Mode, we can show mock data if real data is empty.
+
             const { data: txs } = await supabase
                 .from('transactions')
                 .select('*')
                 .order('created_at', { ascending: true });
 
-            if (!txs) return;
+            if (!txs || txs.length === 0) {
+                if (!isRealMode) {
+                    // MOCK DATA FOR DEMO MODE
+                    setStats({
+                        successCount: 124,
+                        blockedCount: 12,
+                        totalValue: 45000,
+                        targetData: [
+                            { name: 'Employees', value: 45 },
+                            { name: 'Vendors', value: 30 },
+                            { name: 'Infra', value: 25 },
+                        ],
+                        timeData: [
+                            { time: '10:00', value: 1200 },
+                            { time: '11:00', value: 3400 },
+                            { time: '12:00', value: 2100 },
+                            { time: '13:00', value: 5600 },
+                            { time: '14:00', value: 1800 },
+                        ]
+                    });
+                } else {
+                    // REAL MODE EMPTY STATE
+                    setStats({
+                        successCount: 0,
+                        blockedCount: 0,
+                        totalValue: 0,
+                        targetData: [],
+                        timeData: []
+                    });
+                }
+                return;
+            }
 
             const success = txs.filter(t => t.status === 'SUCCESS').length;
             const blocked = txs.filter(t => t.status !== 'SUCCESS').length;
@@ -69,7 +103,7 @@ export function AnalyticsDashboard() {
             .subscribe();
 
         return () => { supabase.removeChannel(subscription); };
-    }, []);
+    }, [isRealMode]);
 
     const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 

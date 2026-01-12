@@ -441,3 +441,24 @@ export async function executeTransferWithAgent(aegisAddress: string, tokenAddres
         return null;
     }
 }
+
+export const switchNetwork = async (isRealMode: boolean) => {
+    if (!window.ethereum) return;
+
+    const targetChainId = isRealMode ? "0x1" : "0xaa36a7"; // Mainnet vs Sepolia
+
+    try {
+        await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: targetChainId }],
+        });
+    } catch (error: any) {
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (error.code === 4902) {
+            // We could add logic here to add the chain, but Mainnet and Sepolia are usually default.
+            console.error("Chain not found in MetaMask");
+        } else {
+            console.error("Failed to switch network", error);
+        }
+    }
+};
