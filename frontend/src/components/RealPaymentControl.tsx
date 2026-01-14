@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Send, Loader2, CheckCircle, AlertTriangle, ChevronDown } from "lucide-react";
 import { ethers } from "ethers";
-import { MneeLogo } from "./MneeLogo";
-import { REAL_MNEE_ADDRESS, MNEE_ABI } from "@/lib/constants";
+import { TokenLogo } from "./TokenLogo";
+import { REAL_TOKEN_ADDRESS, TOKEN_ABI, SUPPORTED_TOKENS } from "@/lib/constants";
+
+// Helper to ensure network (duplicated from blockchain.ts to avoid circular deps or just import if possible)
+// Better to import if exported. It is not exported in blockchain.ts, so I will add it or just use the public switchNetwork function.
+import { switchNetwork } from "@/lib/blockchain";
 
 export function RealPaymentControl() {
     const [recipient, setRecipient] = useState("");
     const [amount, setAmount] = useState("");
+    const [selectedToken, setSelectedToken] = useState(SUPPORTED_TOKENS[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
     const [txHash, setTxHash] = useState("");
@@ -20,11 +25,15 @@ export function RealPaymentControl() {
 
         try {
             if (!window.ethereum) throw new Error("No wallet found");
+
+            // Enforce Real Mode (Mainnet) since this is RealPaymentControl
+            await switchNetwork(true);
+
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
 
-            const contract = new ethers.Contract(REAL_MNEE_ADDRESS, MNEE_ABI, signer);
-            const amountWei = ethers.parseUnits(amount, 18);
+            const contract = new ethers.Contract(selectedToken.address, TOKEN_ABI, signer);
+            const amountWei = ethers.parseUnits(amount, selectedToken.decimals);
 
             const tx = await contract.transfer(recipient, amountWei);
             await tx.wait();
@@ -55,17 +64,31 @@ export function RealPaymentControl() {
                     />
                 </div>
                 <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Amount (MNEE)</label>
-                    <div className="relative">
-                        <input
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="0.00"
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors font-mono"
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <MneeLogo className="w-4 h-4" />
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Amount & Asset</label>
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="0.00"
+                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-4 pr-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors font-mono"
+                            />
+                        </div>
+                        <div className="relative w-32">
+                            <select
+                                value={selectedToken.symbol}
+                                onChange={(e) => {
+                                    const token = SUPPORTED_TOKENS.find(t => t.symbol === e.target.value);
+                                    if (token) setSelectedToken(token);
+                                }}
+                                className="w-full h-full appearance-none bg-slate-800 border border-white/10 rounded-lg pl-3 pr-8 text-sm text-white font-bold focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                            >
+                                {SUPPORTED_TOKENS.map(token => (
+                                    <option key={token.symbol} value={token.symbol}>{token.symbol}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
                 </div>
@@ -94,7 +117,7 @@ export function RealPaymentControl() {
                 className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:shadow-none"
             >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {isLoading ? "Processing..." : "Send Payment"}
+                {isLoading ? "Processing..." : `Send ${selectedToken.symbol}`}
             </button>
         </div>
     );

@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { MOCK_MNEE_ADDRESS, REAL_MNEE_ADDRESS, MNEE_ABI } from "./constants";
+import { MOCK_TOKEN_ADDRESS, REAL_TOKEN_ADDRESS, TOKEN_ABI } from "./constants";
 
 const SEPOLIA_RPC_FALLBACKS = [
     "https://ethereum-sepolia-rpc.publicnode.com",
@@ -35,26 +35,26 @@ export async function getETHBalance(address: string, isRealMode: boolean = false
     }
 }
 
-export async function getMNEEBalance(walletAddress: string, mneeAddress: string, isRealMode: boolean = false): Promise<string> {
+export async function getTokenBalance(walletAddress: string, tokenAddress: string, isRealMode: boolean = false): Promise<string> {
     try {
-        if (!walletAddress || !mneeAddress) return "0.00";
+        if (!walletAddress || !tokenAddress) return "0.00";
 
         const rpcUrl = isRealMode ? MAINNET_RPC : (process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || SEPOLIA_RPC_FALLBACKS[0]);
         const provider = new ethers.JsonRpcProvider(rpcUrl);
 
         // Verify code exists
-        const code = await provider.getCode(mneeAddress);
+        const code = await provider.getCode(tokenAddress);
         if (code === "0x") return "0.00";
 
-        const contract = new ethers.Contract(mneeAddress, MNEE_ABI, provider);
+        const contract = new ethers.Contract(tokenAddress, TOKEN_ABI, provider);
 
         const balance = await contract.balanceOf(walletAddress);
-        const decimals = await contract.decimals();
+        const decimals = await contract.decimals ? await contract.decimals() : 18;
 
         return ethers.formatUnits(balance, decimals);
     } catch (error: any) {
         if (error.code === "BAD_DATA") return "0.00";
-        console.error("Error fetching MNEE balance:", error);
+        console.error("Error fetching token balance:", error);
         return "0.00";
     }
 }
@@ -91,7 +91,7 @@ export async function getLiveTransactions(aegisAddress: string) {
                 amount: value ? ethers.formatEther(value) : "0.0",
                 status: isBlocked ? "BLOCKED" : "SUCCESS" as "SUCCESS" | "WARNING" | "BLOCKED",
                 timestamp: "LIVE",
-                aiAnalysis: isBlocked ? `BLOCKED: ${reason}` : "Verified on-chain execution via AegisGuard.",
+                policyCheck: isBlocked ? `BLOCKED: ${reason}` : "Verified: Recipient is whitelisted.",
                 isSimulated: false
             };
         });
@@ -267,7 +267,7 @@ export async function addTokenToWallet(tokenAddress: string, symbol: string, dec
     }
 }
 
-export async function mintMNEE(tokenAddress: string, amount: string) {
+export async function mintTokens(tokenAddress: string, amount: string) {
     try {
         if (!window.ethereum) throw new Error("No crypto wallet found");
 
@@ -288,7 +288,7 @@ export async function mintMNEE(tokenAddress: string, amount: string) {
         await tx.wait();
         return true;
     } catch (error) {
-        console.error("Error minting MNEE:", error);
+        console.error("Error minting tokens:", error);
         alert("Minting failed. Ensure you have Sepolia ETH for gas.");
         return false;
     }
@@ -318,6 +318,24 @@ export async function executeTransfer(aegisAddress: string, tokenAddress: string
         // Execute via Aegis
         const tx = await contract.execute(tokenAddress, data);
         await tx.wait();
+
+        // Log to Supabase
+        try {
+            const { supabase } = await import("./supabase");
+            await supabase.from('transactions').insert({
+                tx_hash: tx.hash,
+                target: tokenAddress,
+                recipient: recipient,
+                function_selector: "0xa9059cbb", // transfer
+                status: 'SUCCESS',
+                ai_analysis: "Authorized: Whitelisted address",
+                value: amount,
+                is_simulated: !isRealMode
+            });
+        } catch (logError) {
+            console.error("Failed to log transaction:", logError);
+        }
+
         return tx.hash;
     } catch (error: any) {
         console.error("Error executing transfer:", error);
@@ -326,49 +344,64 @@ export async function executeTransfer(aegisAddress: string, tokenAddress: string
     }
 }
 
-export async function depositToVault(aegisAddress: string, tokenAddress: string, amount: string, isRealMode: boolean = false) {
+export async function checkAgentStatus(aegisAddress: string, agentAddress: string, isRealMode: boolean = false): Promise<boolean> {
     try {
-        if (typeof window === 'undefined' || !window.ethereum) {
-            throw new Error("No crypto wallet found.");
-        }
-
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        await checkAndSwitchNetwork(provider, isRealMode);
-
-        await provider.send("eth_requestAccounts", []);
-        const signer = await provider.getSigner();
-
-        // 1. Approve Token
-        const ERC20_ABI = [
-            "function approve(address spender, uint256 amount) external returns (bool)",
-            "function allowance(address owner, address spender) view returns (uint256)",
-            "function transfer(address to, uint256 amount) external returns (bool)"
-        ];
-        const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-        const amountWei = ethers.parseUnits(amount, 18);
-
-        // Check allowance first
-        const userAddress = await signer.getAddress();
-        const currentAllowance = await tokenContract.allowance(userAddress, aegisAddress);
-
-        if (currentAllowance < amountWei) {
-            const approveTx = await tokenContract.approve(aegisAddress, amountWei);
-            await approveTx.wait();
-        }
-
-        // 2. Transfer to Vault
-        const transferTx = await tokenContract.transfer(aegisAddress, amountWei);
-        await transferTx.wait();
-
-        return true;
-    } catch (error: any) {
-        console.error("Error depositing to vault:", error);
-        alert(`Error: ${error.message || "Failed to deposit"}`);
+        const rpcUrl = isRealMode ? MAINNET_RPC : (process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || SEPOLIA_RPC_FALLBACKS[0]);
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const contract = new ethers.Contract(aegisAddress, AEGIS_ABI, provider);
+        return await contract.agents(agentAddress);
+    } catch (error) {
+        console.error("Error checking agent status:", error);
         return false;
     }
 }
 
-export async function setAgent(aegisAddress: string, agentAddress: string, allowed: boolean, isRealMode: boolean = false) {
+export async function executeTransferWithAgent(aegisAddress: string, tokenAddress: string, recipient: string, amount: string, isRealMode: boolean = false) {
+    try {
+        const { agentWallet } = await import("./agentWallet");
+        const rpcUrl = isRealMode ? MAINNET_RPC : (process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || SEPOLIA_RPC_FALLBACKS[0]);
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+        const signer = agentWallet.getSigner(provider);
+        if (!signer) throw new Error("Agent wallet not initialized");
+
+        const contract = new ethers.Contract(aegisAddress, AEGIS_ABI, signer);
+
+        const ERC20_INTERFACE = new ethers.Interface([
+            "function transfer(address to, uint256 amount) external returns (bool)"
+        ]);
+
+        const amountWei = ethers.parseUnits(amount, 18);
+        const data = ERC20_INTERFACE.encodeFunctionData("transfer", [recipient, amountWei]);
+
+        const tx = await contract.execute(tokenAddress, data);
+        await tx.wait();
+
+        // Log to Supabase
+        try {
+            const { supabase } = await import("./supabase");
+            await supabase.from('transactions').insert({
+                tx_hash: tx.hash,
+                target: tokenAddress,
+                recipient: recipient,
+                function_selector: "0xa9059cbb", // transfer
+                status: 'SUCCESS',
+                ai_analysis: "Authorized: Whitelisted address",
+                value: amount,
+                is_simulated: !isRealMode
+            });
+        } catch (logError) {
+            console.error("Failed to log transaction:", logError);
+        }
+
+        return tx.hash;
+    } catch (error: any) {
+        console.error("Error executing transfer with agent:", error);
+        return null;
+    }
+}
+
+export async function setAgent(aegisAddress: string, agent: string, allowed: boolean, isRealMode: boolean = false) {
     try {
         if (typeof window === 'undefined' || !window.ethereum) {
             throw new Error("No crypto wallet found.");
@@ -381,7 +414,7 @@ export async function setAgent(aegisAddress: string, agentAddress: string, allow
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(aegisAddress, AEGIS_ABI, signer);
 
-        const tx = await contract.setAgent(agentAddress);
+        const tx = await contract.setAgent(agent);
         await tx.wait();
         return true;
     } catch (error: any) {
@@ -391,74 +424,39 @@ export async function setAgent(aegisAddress: string, agentAddress: string, allow
     }
 }
 
-export async function checkAgentStatus(aegisAddress: string, agentAddress: string, isRealMode: boolean = false): Promise<boolean> {
+export async function depositToVault(aegisAddress: string, tokenAddress: string, amount: string, decimals: number = 18, isRealMode: boolean = false) {
     try {
-        if (!aegisAddress || !agentAddress) return false;
-
-        const rpcUrl = isRealMode ? MAINNET_RPC : (process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || SEPOLIA_RPC_FALLBACKS[0]);
-        const provider = new ethers.JsonRpcProvider(rpcUrl);
-
-        // Verify code exists at address before calling
-        const code = await provider.getCode(aegisAddress);
-        if (code === "0x") {
-            console.warn(`No contract found at ${aegisAddress} on ${isRealMode ? 'Mainnet' : 'Sepolia'}`);
-            return false;
+        if (typeof window === 'undefined' || !window.ethereum) {
+            throw new Error("No crypto wallet found.");
         }
 
-        const contract = new ethers.Contract(aegisAddress, AEGIS_ABI, provider);
-        return await contract.agents(agentAddress);
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await checkAndSwitchNetwork(provider, isRealMode);
+
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+        const tokenContract = new ethers.Contract(tokenAddress, TOKEN_ABI, signer);
+
+        const amountWei = ethers.parseUnits(amount, decimals);
+
+        // 1. Approve Aegis to spend tokens
+        const approveTx = await tokenContract.approve(aegisAddress, amountWei);
+        await approveTx.wait();
+
+        // 2. Transfer tokens to Aegis (Vault)
+        const transferTx = await tokenContract.transfer(aegisAddress, amountWei);
+        await transferTx.wait();
+
+        return true;
     } catch (error: any) {
-        // Handle "BAD_DATA" which means the call returned 0x (empty)
-        if (error.code === "BAD_DATA") {
-            console.warn("Contract call returned empty data (BAD_DATA). Likely wrong network or invalid address.");
-            return false;
-        }
-        console.error("Error checking agent status:", error);
+        console.error("Error depositing to vault:", error);
+        alert(`Error: ${error.message || "Failed to deposit to vault"}`);
         return false;
     }
 }
 
-export async function executeTransferWithAgent(aegisAddress: string, tokenAddress: string, recipient: string, amount: string, agentSigner: ethers.Wallet) {
-    try {
-        if (!aegisAddress || !tokenAddress || !recipient) return null;
-
-        const contract = new ethers.Contract(aegisAddress, AEGIS_ABI, agentSigner);
-
-        // Encode ERC20 transfer call
-        const ERC20_INTERFACE = new ethers.Interface([
-            "function transfer(address to, uint256 amount) external returns (bool)"
-        ]);
-
-        const amountWei = ethers.parseUnits(amount, 18); // Assuming 18 decimals
-        const data = ERC20_INTERFACE.encodeFunctionData("transfer", [recipient, amountWei]);
-
-        // Execute via Aegis
-        const tx = await contract.execute(tokenAddress, data);
-        await tx.wait();
-        return tx.hash;
-    } catch (error: any) {
-        console.error("Error executing transfer with agent:", error);
-        return null;
-    }
+export async function switchNetwork(isRealMode: boolean) {
+    if (typeof window === 'undefined' || !window.ethereum) return;
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await checkAndSwitchNetwork(provider, isRealMode);
 }
-
-export const switchNetwork = async (isRealMode: boolean) => {
-    if (!window.ethereum) return;
-
-    const targetChainId = isRealMode ? "0x1" : "0xaa36a7"; // Mainnet vs Sepolia
-
-    try {
-        await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: targetChainId }],
-        });
-    } catch (error: any) {
-        // This error code indicates that the chain has not been added to MetaMask.
-        if (error.code === 4902) {
-            // We could add logic here to add the chain, but Mainnet and Sepolia are usually default.
-            console.error("Chain not found in MetaMask");
-        } else {
-            console.error("Failed to switch network", error);
-        }
-    }
-};

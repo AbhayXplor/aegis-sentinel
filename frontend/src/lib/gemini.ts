@@ -35,7 +35,7 @@ export async function generatePolicyFromPrompt(prompt: string) {
       Known Addresses:
       - Uniswap: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
       - Aave: 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9
-      - MNEE: 0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF
+      - Stablecoin: 0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF
     `;
 
     const result = await model.generateContent(systemPrompt + "\nUser Input: " + prompt);

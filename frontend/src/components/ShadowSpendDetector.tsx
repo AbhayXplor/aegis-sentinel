@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, Plus, Loader2, Search } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 
 interface ShadowSpend {
     address: string;

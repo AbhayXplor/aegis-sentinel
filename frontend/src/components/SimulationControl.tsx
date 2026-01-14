@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 interface SimulationControlProps {
     isRealMode?: boolean;
     isPaused?: boolean;
+    onBalanceUpdate?: (val: string | null) => void;
 }
 
 export function SimulationControl({ isRealMode = false, isPaused = false }: SimulationControlProps) {
@@ -80,7 +81,19 @@ export function SimulationControl({ isRealMode = false, isPaused = false }: Simu
     const toggleSimulation = async () => {
         if (isRealMode) return; // Prevent simulation in real mode
         const newState = !isRunning;
-        await supabase.from('simulation_state').upsert({ id: 1, is_running: newState });
+
+        const { error } = await supabase.from('simulation_state').upsert({ id: 1, is_running: newState });
+
+        if (error) {
+            console.error("Failed to update simulation state in DB:", {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+            });
+            return;
+        }
+
         setIsRunning(newState);
     };
 

@@ -1,108 +1,65 @@
-# Aegis Prime: The Autonomous Financial Guardian
+# 🛡️ Aegis Sentinel
 
-**Aegis Prime** is an AI-powered financial operating system for crypto organizations. It moves beyond simple "multisig" wallets by acting as an intelligent, proactive CFO that manages payroll, analyzes runway, and enforces security policies in real-time.
+**AI-Powered On-Chain Security & Autonomous Guardrails for Smart Wallets.**
 
-![Aegis Prime Dashboard](frontend/public/aegis_hero_dashboard_1768213663855.png)
+Aegis Sentinel is a next-generation security layer for decentralized finance. It combines the power of Large Language Models (LLMs) with on-chain policy enforcement to provide a "Guardian" for your smart wallet. Whether you are an individual user or a DAO treasury, Aegis Sentinel ensures that your funds are protected by intelligent, real-time guardrails.
+
+![Aegis Sentinel Dashboard](file:///c:/Users/abhay/Downloads/MNEE%20Hackathon/aegis/frontend/public/dashboard_preview.png)
 
 ## 🚀 Key Features
 
-### 🧠 AI-Powered Financial Intelligence
-*   **Natural Language Policies**: "Allow monthly payroll up to 50,000 MNEE" — parsed and enforced by the **AegisGuard** smart contract.
-*   **Runway Forecasting**: Real-time calculation of financial survival based on live burn rates and treasury balance.
-*   **Shadow Spend Detection**: AI analysis of transaction history to identify and flag unlabelled recurring drains.
+- **🧠 AI Policy Engine:** Define complex security rules in plain English (e.g., *"Allow payments to OpenAI up to 500 tokens per month"*). Aegis translates these into deterministic on-chain policies.
+- **🛡️ Autonomous Guardrails:** Real-time enforcement of spending limits, whitelists, and function-level permissions directly on the blockchain.
+- **🤖 Autonomous Agents:** Securely delegate transaction authority to AI agents (like the Payroll Automator) while maintaining strict control via the Aegis Guard.
+- **📋 Live Audit Logs:** A transparent, real-time feed of all transaction attempts, including detailed policy status and risk analysis.
+- **⚡ Real-time Risk Assessment:** Instant detection of suspicious patterns, phishing attempts, and unauthorized spend.
 
-![AI Policy Engine](frontend/public/aegis_ai_policy_1768213706344.png)
+## 🛠️ Tech Stack
 
-### 🛡️ Smart Vault Architecture
-*   **AegisGuard Contract**: A custom Solidity smart contract that holds funds and enforces AI-defined rules on-chain.
-*   **Allowance-Based Delegation**: The AI acts as a "Smart Delegate," executing approved recurring payments (like payroll) within strict, user-defined limits.
-*   **MNEE Token Native**: Built from the ground up to manage and protect MNEE token treasuries.
+- **Frontend:** Next.js 14, Tailwind CSS, Framer Motion, Lucide Icons.
+- **Blockchain:** Solidity, Ethers.js, Hardhat.
+- **AI/ML:** Google Gemini 1.5 Flash (via Gemini SDK).
+- **Backend/Database:** Supabase (Realtime, Postgres).
 
-![Blockchain Security](frontend/public/aegis_security_shield_1768213680104.png)
+## 📂 Project Structure
 
-### 📊 Institutional-Grade Dashboard
-*   **Dual-Mode Interface**: Seamlessly switch between **Real Mode** (Live Mainnet/Sepolia data) and **Demo Mode** (High-fidelity simulation).
-*   **Redesigned Payroll Agent**: Manage specific recurring payment rules (Daily, Weekly, Monthly) with automated execution and on-chain enforcement.
-*   **Live Asset Tracking**: Real-time ETH price fetching and MNEE valuation for accurate treasury reporting.
-*   **Live Threat Map**: Visualizes blocked attacks and authorized operations globally.
+- `/aegis/contracts`: Solidity smart contracts and deployment scripts.
+- `/aegis/frontend`: Next.js web application.
+- `/aegis/frontend/src/lib`: Core logic for AI integration, blockchain interaction, and Supabase.
 
-## 🛠️ Tech Stack & Third-Party Services
-
-Aegis Prime leverages several industry-leading services and libraries to provide a secure and intelligent experience:
-
-*   **AI Engine**: [Google Gemini 2.0 Flash](https://ai.google.dev/) — Powers the natural language policy parsing, risk auditing, and financial analysis.
-*   **Backend & Database**: [Supabase](https://supabase.com/) — Provides real-time audit logs, entity management, and secure data storage.
-*   **Blockchain Infrastructure**: 
-    *   [Ethers.js](https://docs.ethers.org/) — Core library for blockchain interactions.
-    *   [Hardhat](https://hardhat.org/) — Development environment for smart contracts.
-*   **Frontend Framework**: [Next.js 14](https://nextjs.org/) — React framework for the dashboard.
-*   **UI & Styling**:
-    *   [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework.
-    *   [Framer Motion](https://www.framer.com/motion/) — High-fidelity animations.
-    *   [Lucide React](https://lucide.dev/) — Iconography system.
-*   **Data Visualization**: [Recharts](https://recharts.org/) — Charting library for treasury analytics.
-
----
-
-## ⚖️ Third-Party Licenses & Permissions
-
-All third-party SDKs and APIs used in this project are utilized under their respective developer terms and open-source licenses (MIT, Apache 2.0, or equivalent). 
-*   **Google Gemini API**: Used in accordance with the Google Generative AI Terms of Service.
-*   **Supabase SDK**: Licensed under MIT.
-*   **Ethers.js**: Licensed under MIT.
-*   **Next.js**: Licensed under MIT.
-
-## 📦 Project Structure
-
-*   `frontend/`: The Next.js dashboard and API routes.
-*   `contracts/`: The Solidity smart contracts and deployment scripts.
-
-## ⚡ Quick Start
+## 🚦 Getting Started
 
 ### Prerequisites
-*   Node.js 18+
-*   MetaMask Wallet
-*   Gemini API Key
-*   Supabase Project
 
-### 1. Clone & Install
-```bash
-git clone https://github.com/AbhayXplor/aegis-prime.git
-cd aegis-prime
+- Node.js 18+
+- MetaMask or any EIP-1193 wallet.
+- Gemini API Key.
+- Supabase Project.
 
-# Install Frontend Dependencies
-cd frontend
-npm install
+### Installation
 
-# Install Contract Dependencies
-cd ../contracts
-npm install
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-repo/aegis-sentinel.git
+   cd aegis-sentinel
+   ```
 
-### 2. Environment Setup
-Create a `.env.local` file in `frontend/`:
-```env
-NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-NEXT_PUBLIC_SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
-NEXT_PUBLIC_MAINNET_RPC=https://eth.llamarpc.com
-NEXT_PUBLIC_MNEE_ADDRESS=0x...
-NEXT_PUBLIC_AEGIS_GUARD_ADDRESS=0x...
-```
+2. **Setup Frontend:**
+   ```bash
+   cd aegis/frontend
+   npm install
+   cp .env.example .env.local
+   # Fill in your NEXT_PUBLIC_GEMINI_API_KEY, NEXT_PUBLIC_SUPABASE_URL, etc.
+   npm run dev
+   ```
 
-### 3. Run Locally
-```bash
-cd frontend
-npm run dev
-```
-Visit `http://localhost:3000`.
+3. **Setup Contracts (Optional):**
+   ```bash
+   cd aegis/contracts
+   npm install
+   npx hardhat compile
+   ```
 
-## 🛡️ Smart Contracts
+## 📜 License
 
-The `AegisGuard` contract is deployed on Sepolia.
-*   **AegisGuard**: `0xC534d9923eA8fFE1A1e117352c1dE6c61F31e095`
-*   **MockMNEE**: `0x469470675401b92f1D7f1e83B4660FE51026746e`
-
-## 📄 License
-MIT
+MIT License. See [LICENSE](LICENSE) for details.

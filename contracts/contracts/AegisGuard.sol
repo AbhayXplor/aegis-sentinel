@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 /**
  * @title AegisGuard
  * @notice A smart wallet that enforces Function-Level Intents AND Parameter-Level Spending Limits.
- * @dev Supports native ETH and ERC-20 (MNEE) tokens.
+ * @dev Supports native ETH and ERC-20 tokens.
  */
 contract AegisGuard is Pausable {
     // --- State Variables ---

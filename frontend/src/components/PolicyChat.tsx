@@ -4,14 +4,7 @@ import { useState, useEffect } from "react";
 import { Send, Shield, CheckCircle, AlertTriangle, Loader2, Mic, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { parsePolicyIntent, PolicyIntent } from "@/lib/policyParser";
-import { createClient } from "@supabase/supabase-js";
-
-import { setPolicy, whitelistRecipient, setSpendingLimit } from "@/lib/blockchain";
-
-// Initialize Supabase Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/lib/supabase";
 
 interface StoredPolicy extends PolicyIntent {
     id: number;
@@ -104,7 +97,7 @@ export function PolicyChat() {
             if (proposedPolicy.type === "RECIPIENT") {
                 success = await whitelistRecipient(aegisAddress, proposedPolicy.target, true);
             } else if (proposedPolicy.type === "SPENDING_LIMIT") {
-                const tokenAddress = proposedPolicy.target || process.env.NEXT_PUBLIC_MNEE_ADDRESS || "";
+                const tokenAddress = proposedPolicy.target || process.env.NEXT_PUBLIC_REAL_TOKEN_ADDRESS || "";
                 const amount = proposedPolicy.amount || "0";
                 const period = proposedPolicy.period || 86400;
                 success = await setSpendingLimit(aegisAddress, tokenAddress, amount, period);
@@ -150,7 +143,7 @@ export function PolicyChat() {
                 {activePolicies.length === 0 && !proposedPolicy && (
                     <div className="text-center text-gray-600 text-[10px] mt-8">
                         No active mandates. <br /> Speak a rule to start. <br />
-                        <span className="italic opacity-50">"Set spending limit to 5k MNEE"</span>
+                        <span className="italic opacity-50">"Set spending limit to 5k tokens"</span>
                     </div>
                 )}
 
@@ -217,7 +210,7 @@ export function PolicyChat() {
                                 <>
                                     <div>
                                         <span className="block text-gray-600 text-[8px]">AMOUNT</span>
-                                        {proposedPolicy.amount} MNEE
+                                        {proposedPolicy.amount} Tokens
                                     </div>
                                     <div>
                                         <span className="block text-gray-600 text-[8px]">PERIOD</span>
@@ -250,7 +243,7 @@ export function PolicyChat() {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder='e.g., "Allow Payroll to send 5000 MNEE"'
+                    placeholder='e.g., "Allow Payroll to send 5000 tokens"'
                     className="w-full bg-black/40 border border-white/10 rounded-lg py-2 pl-3 pr-16 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
                     disabled={isLoading}
                 />

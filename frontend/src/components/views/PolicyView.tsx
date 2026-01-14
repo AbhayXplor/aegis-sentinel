@@ -45,7 +45,7 @@ export function PolicyView() {
                         <div className="space-y-3">
                             {[
                                 "Only allow payroll to whitelisted employees",
-                                "Block all transfers over 50,000 MNEE",
+                                "Block all transfers over 50,000 tokens",
                                 "Require 2FA for any policy changes",
                                 "Whitelist OpenAI for API payments"
                             ].map((template, i) => (

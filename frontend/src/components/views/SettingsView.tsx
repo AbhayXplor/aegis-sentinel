@@ -3,7 +3,12 @@
 import { Shield, User, Power } from "lucide-react";
 import { PageHeader } from "../PageHeader";
 
-export function SettingsView() {
+interface SettingsViewProps {
+    isRealMode?: boolean;
+    isPaused?: boolean;
+}
+
+export function SettingsView({ isRealMode = false, isPaused = false }: SettingsViewProps) {
     return (
         <div className="space-y-8">
             <PageHeader

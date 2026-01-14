@@ -3,7 +3,7 @@
 import { Banknote, History, Users } from "lucide-react";
 import { TreasuryFunding } from "../TreasuryFunding";
 import { EntityList } from "../EntityList";
-import { MneeLogo } from "../MneeLogo";
+import { TokenLogo } from "../TokenLogo";
 import { SimulationControl } from "../SimulationControl";
 import { RealPaymentControl } from "../RealPaymentControl";
 import { RealPayrollActivity } from "../RealPayrollActivity";
@@ -37,7 +37,7 @@ export function PayrollView({ isRealMode, isPaused, balance }: PayrollViewProps)
                                     {isRealMode ? "Make Payment" : "Payroll Simulator"}
                                 </h3>
                                 <p className="text-[10px] text-slate-500 font-medium">
-                                    {isRealMode ? "Send MNEE to vendors or employees" : "Test automated disbursement logic"}
+                                    {isRealMode ? "Send tokens to vendors or employees" : "Test automated disbursement logic"}
                                 </p>
                             </div>
                         </div>
@@ -72,8 +72,8 @@ export function PayrollView({ isRealMode, isPaused, balance }: PayrollViewProps)
                                         <div className="text-right">
                                             <p className="text-[11px] font-bold text-white">${item.amount}</p>
                                             <div className="flex items-center justify-end gap-1">
-                                                <span className="text-[9px] text-blue-400 uppercase tracking-widest">MNEE</span>
-                                                <MneeLogo className="w-2 h-2" />
+                                                <span className="text-[9px] text-blue-400 uppercase tracking-widest">Tokens</span>
+                                                <TokenLogo className="w-2 h-2" />
                                             </div>
                                         </div>
                                     </div>

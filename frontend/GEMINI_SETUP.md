@@ -1,14 +1,32 @@
-# Gemini AI Setup Instructions
+# ♊ Gemini AI Setup for Aegis Sentinel
 
-To enable the **AI Policy Generator**, follow these steps:
+Aegis Sentinel uses Google Gemini 1.5 Flash to power its Natural Language Policy Engine and Transaction Risk Analysis.
 
-1.  Go to [Google AI Studio](https://aistudio.google.com/) and create a free API Key.
-2.  Create a file named `.env.local` in the `frontend` directory.
-3.  Paste the following content into that file:
+## 🔑 Getting an API Key
+
+1. Go to the [Google AI Studio](https://aistudio.google.com/).
+2. Create a new API Key.
+3. Copy the key.
+
+## ⚙️ Configuration
+
+1. Open `aegis/frontend/.env.local`.
+2. Add your key to the `NEXT_PUBLIC_GEMINI_API_KEY` variable:
 
 ```env
-NEXT_PUBLIC_GEMINI_API_KEY=PASTE_YOUR_KEY_HERE
-NEXT_PUBLIC_MNEE_ADDRESS=0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF
+NEXT_PUBLIC_GEMINI_API_KEY=your_actual_key_here
 ```
 
-4.  Restart the frontend development server (`npm run dev`).
+## 🧠 How Aegis Sentinel uses Gemini
+
+### 1. Policy Intent Analysis
+When a user enters a rule like *"Block all transfers to 0x123..."*, Gemini identifies:
+- **Action:** Block
+- **Target:** 0x123...
+- **Risk Level:** High
+
+### 2. Policy Generation
+Gemini generates human-readable descriptions and risk scores for every security rule created, ensuring transparency for the user.
+
+### 3. Risk Auditing (Optional)
+Gemini can analyze transaction data (target, function, value) to provide a real-time risk score and explanation before execution.

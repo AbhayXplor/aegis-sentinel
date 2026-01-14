@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Users, Plus, Loader2, Trash2 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import { BatchPaymentModal } from "./BatchPaymentModal";
 
 interface Entity {
@@ -238,7 +240,7 @@ export function EntityList({ isRealMode }: EntityListProps) {
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-slate-400 block mb-1">Monthly Allowance (MNEE)</label>
+                                <label className="text-xs text-slate-400 block mb-1">Monthly Allowance (Tokens)</label>
                                 <input
                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm"
                                     value={newAllowance} onChange={e => setNewAllowance(e.target.value)} placeholder="5000"

@@ -23,8 +23,8 @@ export function SecurityView({ isRealMode = false }: SecurityViewProps) {
                         <button
                             onClick={() => setActiveTab("monitor")}
                             className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === "monitor"
-                                    ? "bg-blue-600 text-white shadow-lg"
-                                    : "text-slate-400 hover:text-white"
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "text-slate-400 hover:text-white"
                                 }`}
                         >
                             Threat Monitor
@@ -32,8 +32,8 @@ export function SecurityView({ isRealMode = false }: SecurityViewProps) {
                         <button
                             onClick={() => setActiveTab("policy")}
                             className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === "policy"
-                                    ? "bg-blue-600 text-white shadow-lg"
-                                    : "text-slate-400 hover:text-white"
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "text-slate-400 hover:text-white"
                                 }`}
                         >
                             Policy Engine
@@ -151,7 +151,7 @@ export function SecurityView({ isRealMode = false }: SecurityViewProps) {
                             <div className="space-y-3">
                                 {[
                                     "Only allow payroll to whitelisted employees",
-                                    "Block all transfers over 50,000 MNEE",
+                                    "Block all transfers over 50,000 tokens",
                                     "Require 2FA for any policy changes",
                                     "Whitelist OpenAI for API payments"
                                 ].map((template, i) => (

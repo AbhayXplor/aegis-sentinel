@@ -79,7 +79,7 @@ export function AddStreamModal({ isOpen, onClose, onSave }: AddStreamModalProps)
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Amount (MNEE)</label>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">Amount (Tokens)</label>
                             <input
                                 type="number"
                                 value={amount}

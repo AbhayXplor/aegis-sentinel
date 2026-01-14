@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Activity, ShieldAlert, ShieldCheck, Clock } from "lucide-react";
-import { MneeLogo } from "./MneeLogo";
-import { supabase } from "@/lib/supabaseClient";
+import { TokenLogo } from "./TokenLogo";
+import { supabase } from "@/lib/supabase";
 
 interface MetricsWidgetsProps {
     balance: string;
@@ -78,11 +78,11 @@ export function MetricsWidgets({ balance, vaultBalance, isRealMode }: MetricsWid
             {/* Card 2: Volume */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-medium text-slate-400">Volume (MNEE)</span>
+                    <span className="text-sm font-medium text-slate-400">Volume (Tokens)</span>
                     <Activity className="w-4 h-4 text-purple-500" />
                 </div>
                 <div className="flex items-center gap-3">
-                    <MneeLogo className="w-8 h-8" />
+                    <TokenLogo className="w-8 h-8" />
                     <div className="text-3xl font-semibold text-white">{volume}</div>
                 </div>
                 <div className="mt-2 text-xs text-slate-500">

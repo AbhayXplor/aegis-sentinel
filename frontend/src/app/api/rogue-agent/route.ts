@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import { createClient } from '@supabase/supabase-js';
-import { KNOWN_ENTITIES, VALID_TARGETS } from '@/lib/constants';
-
-// Initialize Supabase Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/lib/supabase";
+import { KNOWN_ENTITIES, VALID_TARGETS, MOCK_TOKEN_ADDRESS } from '@/lib/constants';
 
 // Contract Config
 const AEGIS_ADDRESS = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS!;
-const MNEE_ADDRESS = process.env.NEXT_PUBLIC_MNEE_ADDRESS!;
+const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_REAL_TOKEN_ADDRESS || MOCK_TOKEN_ADDRESS;
 const PRIVATE_KEY = process.env.ROGUE_AGENT_PRIVATE_KEY;
 
 if (!PRIVATE_KEY || PRIVATE_KEY.length !== 66) {
@@ -30,7 +25,7 @@ const AEGIS_ABI = [
     "event Executed(address indexed target, bytes4 indexed selector, uint256 value, bytes data)"
 ];
 
-const MNEE_ABI = [
+const TOKEN_ABI = [
     "function transfer(address to, uint256 amount) external returns (bool)",
     "function approve(address spender, uint256 amount) external returns (bool)"
 ];
@@ -40,11 +35,15 @@ export async function POST(request: Request) {
         const { action, customAmount } = await request.json();
 
         // 1. Check Simulation State
-        const { data: state } = await supabase
+        const { data: state, error: stateError } = await supabase
             .from('simulation_state')
             .select('is_running')
             .eq('id', 1)
             .single();
+
+        if (stateError) {
+            console.error("[API] Error fetching simulation state:", stateError);
+        }
 
         if (!state?.is_running && action !== 'FORCE_RUN') {
             return NextResponse.json({ status: 'STOPPED', message: 'Simulation is not running' });
@@ -68,7 +67,7 @@ export async function POST(request: Request) {
         }
         const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
         const aegis = new ethers.Contract(AEGIS_ADDRESS, AEGIS_ABI, wallet);
-        const mnee = new ethers.Contract(MNEE_ADDRESS, MNEE_ABI, wallet);
+        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, wallet);
 
         // 3. Fetch Active Policies from Supabase
         const { data: policies } = await supabase
@@ -79,7 +78,6 @@ export async function POST(request: Request) {
         const activeTargets = policies?.map(p => p.target?.toLowerCase()) || [];
 
         // 4. Deterministic Target Selection
-        // We want to show the "Security" features, so we prioritize the "Attack" targets
         const ATTACK_RECIPIENTS = [
             "0x6666666666666666666666666666666666666666", // AWS Infrastructure
             "0x4242424242424242424242424242424242424242", // OpenAI API Billing
@@ -96,7 +94,6 @@ export async function POST(request: Request) {
             recipient = VALID_TARGETS[Math.floor(Math.random() * VALID_TARGETS.length)];
             isAttack = false;
         } else {
-            // AUTO mode: 70% chance to pick an "Attack" target to show off the guardrails
             if (Math.random() < 0.7) {
                 recipient = ATTACK_RECIPIENTS[Math.floor(Math.random() * ATTACK_RECIPIENTS.length)];
                 isAttack = true;
@@ -107,17 +104,13 @@ export async function POST(request: Request) {
         }
 
         // 5. POLICY CHECK (DETERMINISTIC)
-        // If a policy exists for the target, it is ALWAYS authorized.
         if (activeTargets.includes(recipient.toLowerCase())) {
             isAttack = false;
-            console.log(`[SIM] Policy found for ${recipient}. Transaction is AUTHORIZED.`);
         } else if (ATTACK_RECIPIENTS.includes(recipient)) {
-            // If it's an attack recipient and NO policy exists, it's ALWAYS an attack (BLOCKED)
             isAttack = true;
-            console.log(`[SIM] No policy for ${recipient}. Transaction is BLOCKED.`);
         }
 
-        let target = MNEE_ADDRESS;
+        let target = TOKEN_ADDRESS;
         let value = '0';
         let selector = '';
         let data = '';
@@ -130,9 +123,9 @@ export async function POST(request: Request) {
             selector = "0x38ed1739";
             data = selector + "0000000000000000000000000000000000000000000000000000000000000000";
         } else {
-            target = MNEE_ADDRESS;
+            target = TOKEN_ADDRESS;
             const amount = ethers.parseUnits(value, 18);
-            data = mnee.interface.encodeFunctionData("transfer", [recipient, amount]);
+            data = tokenContract.interface.encodeFunctionData("transfer", [recipient, amount]);
             selector = data.slice(0, 10);
         }
 
@@ -140,34 +133,32 @@ export async function POST(request: Request) {
         const simHash = `0xsim_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
 
         // 7. Log PENDING immediately to Supabase
-        await supabase.from('transactions').insert({
+        const { error: insertError } = await supabase.from('transactions').insert({
             tx_hash: simHash,
             target: target,
             recipient: recipient,
             function_selector: selector,
             status: 'PENDING',
-            ai_analysis: 'Analyzing transaction intent...',
+            ai_analysis: 'Verifying address permission...',
             value: value,
             is_simulated: true
         });
 
+        if (insertError) {
+            console.error("Supabase Insert Error:", insertError);
+        }
+
         // 8. Background processing (Fire and Forget)
         (async () => {
             try {
-                // A. Send Real Transaction
-                console.log(`[SIM] Broadcasting real tx for ${simHash}...`);
-
                 let txResponse;
                 try {
                     txResponse = await aegis.execute(target, data, { gasLimit: 500000 });
                 } catch (broadcastError: any) {
-                    console.error("[SIM] Broadcast Error:", broadcastError.message);
-
-                    // FALLBACK: If broadcast fails, simulate based on isAttack
                     const finalStatus = isAttack ? 'BLOCKED' : 'SUCCESS';
                     const finalAnalysis = isAttack
-                        ? `Blocked: Unauthorized transfer to ${KNOWN_ENTITIES[recipient] || 'unrecognized wallet'}.`
-                        : `Authorized: Payment to ${KNOWN_ENTITIES[recipient] || 'Service'} confirmed (Simulated).`;
+                        ? `Blocked: Unauthorized address ${recipient.slice(0, 6)}...`
+                        : `Authorized: Whitelisted address ${recipient.slice(0, 6)}...`;
 
                     await supabase.from('transactions')
                         .update({ status: finalStatus, ai_analysis: finalAnalysis })
@@ -177,13 +168,10 @@ export async function POST(request: Request) {
 
                 const realHash = txResponse.hash;
 
-                // B. Update Supabase with Real Hash
                 await supabase.from('transactions')
-                    .update({ tx_hash: realHash, ai_analysis: 'Transaction broadcasted to network.' })
+                    .update({ tx_hash: realHash, ai_analysis: 'Transaction confirmed on-chain.' })
                     .eq('tx_hash', simHash);
 
-                // C. Wait for Confirmation
-                console.log(`[SIM] Waiting for confirmation of ${realHash}...`);
                 const receipt = await txResponse.wait(1);
                 const violation = receipt.logs.find((log: any) => {
                     try { return aegis.interface.parseLog(log)?.name === 'PolicyViolation'; } catch { return false; }
@@ -194,23 +182,20 @@ export async function POST(request: Request) {
 
                 if (violation) {
                     finalAnalysis = isAttack
-                        ? `Critical: Unauthorized MNEE transfer attempt to ${KNOWN_ENTITIES[recipient] || 'unrecognized wallet'}.`
-                        : `Policy Block: ${KNOWN_ENTITIES[recipient] || 'Service'} payment requires explicit approval.`;
+                        ? `Blocked: Unauthorized address ${recipient.slice(0, 6)}...`
+                        : `Policy Restricted: Address ${recipient.slice(0, 6)}... requires approval.`;
                 } else {
                     finalAnalysis = isAttack
-                        ? `Warning: Unauthorized transfer to ${KNOWN_ENTITIES[recipient] || 'wallet'} succeeded. No guardrails active.`
-                        : `Authorized: Payment to ${KNOWN_ENTITIES[recipient] || 'Service'} confirmed.`;
+                        ? `Warning: Unauthorized address ${recipient.slice(0, 6)}... bypassed guardrails.`
+                        : `Authorized: Whitelisted address ${recipient.slice(0, 6)}... confirmed.`;
                 }
 
                 await supabase.from('transactions')
                     .update({ status: finalStatus, ai_analysis: finalAnalysis })
                     .eq('tx_hash', realHash);
-
-                console.log(`[SIM] Tx ${realHash} finalized as ${finalStatus}`);
             } catch (err: any) {
-                console.error("[SIM] Background Processing Error", err);
                 await supabase.from('transactions')
-                    .update({ status: isAttack ? 'BLOCKED' : 'SUCCESS', ai_analysis: `Simulation fallback: ${err.message}` })
+                    .update({ status: isAttack ? 'BLOCKED' : 'SUCCESS', ai_analysis: `System fallback: ${err.message}` })
                     .eq('tx_hash', simHash);
             }
         })();

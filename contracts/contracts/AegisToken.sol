@@ -3,8 +3,8 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MockMNEE is ERC20 {
-    constructor() ERC20("Monerium EUR", "MNEE") {
+contract AegisToken is ERC20 {
+    constructor() ERC20("Aegis Sentinel Token", "AEGIS") {
         _mint(msg.sender, 1000000 * 10 ** decimals());
     }
 

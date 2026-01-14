@@ -12,7 +12,7 @@ export default function PrivacyPage() {
                 <div className="prose prose-invert max-w-none space-y-6 text-slate-400">
                     <p>Last updated: January 12, 2026</p>
                     <p>
-                        Aegis CFO is a hackathon project built for the MNEE Hackathon. This Privacy Policy describes how we handle information when you use our application.
+                        Aegis CFO is a project built for the Future of Finance. This Privacy Policy describes how we handle information when you use our application.
                     </p>
 
                     <h2 className="text-2xl font-bold text-white mt-8">1. Information Collection</h2>

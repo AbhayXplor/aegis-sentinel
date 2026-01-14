@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { X, ShieldCheck, ShieldAlert, Loader2, CheckCircle, AlertTriangle, Zap } from "lucide-react";
 import { ethers } from "ethers";
-import { REAL_MNEE_ADDRESS, MNEE_ABI } from "@/lib/constants";
+import { REAL_TOKEN_ADDRESS, TOKEN_ABI } from "@/lib/constants";
 import { validateTransaction } from "@/lib/policyEngine";
-import { MneeLogo } from "./MneeLogo";
+import { TokenLogo } from "./TokenLogo";
 
 interface Entity {
     id: string;
@@ -57,7 +57,7 @@ export function BatchPaymentModal({ selectedEntities, onClose, onSuccess }: Batc
             if (!window.ethereum) throw new Error("No wallet found");
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
-            const contract = new ethers.Contract(REAL_MNEE_ADDRESS, MNEE_ABI, signer);
+            const contract = new ethers.Contract(REAL_TOKEN_ADDRESS, TOKEN_ABI, signer);
 
             const newHashes: string[] = [];
 
@@ -107,7 +107,7 @@ export function BatchPaymentModal({ selectedEntities, onClose, onSuccess }: Batc
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Amount</span>
                                     <div className="flex items-center gap-1">
                                         <span className="text-lg font-bold text-white">{totalAmount.toLocaleString()}</span>
-                                        <span className="text-xs font-bold text-blue-400">MNEE</span>
+                                        <span className="text-xs font-bold text-blue-400">Tokens</span>
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">

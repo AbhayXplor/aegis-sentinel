@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { MneeLogo } from "./MneeLogo";
+import { TokenLogo } from "./TokenLogo";
 import { History } from "lucide-react";
 import { KNOWN_ENTITIES } from "@/lib/constants";
 
@@ -54,8 +54,8 @@ export function RealPayrollActivity() {
                             <div className="text-right">
                                 <p className="text-[11px] font-bold text-white">${item.amount}</p>
                                 <div className="flex items-center justify-end gap-1">
-                                    <span className="text-[9px] text-blue-400 uppercase tracking-widest">MNEE</span>
-                                    <MneeLogo className="w-2 h-2" />
+                                    <span className="text-[9px] text-blue-400 uppercase tracking-widest">Tokens</span>
+                                    <TokenLogo className="w-2 h-2" />
                                 </div>
                             </div>
                         </div>

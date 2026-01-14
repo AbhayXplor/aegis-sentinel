@@ -17,7 +17,7 @@ export default function TOSPage() {
 
                     <h2 className="text-2xl font-bold text-white mt-8">1. Hackathon Project</h2>
                     <p>
-                        Aegis CFO is an experimental prototype created for the MNEE Hackathon. It is provided "as is" without any warranties of any kind.
+                        Aegis CFO is an experimental prototype created for the Future of Finance. It is provided "as is" without any warranties of any kind.
                     </p>
 
                     <h2 className="text-2xl font-bold text-white mt-8">2. Financial Risk</h2>

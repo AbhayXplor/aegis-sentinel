@@ -26,7 +26,7 @@ export function Footer() {
                     </div>
                 </div>
                 <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-slate-500">© 2026 Aegis CFO. Built for MNEE Hackathon.</p>
+                    <p className="text-sm text-slate-500">© 2026 Aegis CFO. Built for the Future of Finance.</p>
                     <div className="flex items-center gap-6">
                         <a href="https://www.linkedin.com/in/abhayjithendra/" target="_blank" className="text-slate-500 hover:text-blue-400 transition-colors">
                             LinkedIn

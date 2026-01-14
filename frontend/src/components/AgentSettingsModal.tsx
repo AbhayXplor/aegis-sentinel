@@ -52,8 +52,8 @@ export function AgentSettingsModal({ isOpen, onClose, onSave, initialSettings }:
                                     key={mins}
                                     onClick={() => setSettings({ ...settings, checkFrequency: mins })}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${settings.checkFrequency === mins
-                                            ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
-                                            : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
+                                        ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
+                                        : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
                                         }`}
                                 >
                                     {mins === 1440 ? "Daily" : mins === 60 ? "Hourly" : "Every 15m"}
@@ -79,7 +79,7 @@ export function AgentSettingsModal({ isOpen, onClose, onSave, initialSettings }:
                                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors"
                                 placeholder="e.g. 5000"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">MNEE</span>
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">Tokens</span>
                         </div>
                         <p className="text-[10px] text-slate-500">
                             Agent will pause if total volume exceeds this amount.

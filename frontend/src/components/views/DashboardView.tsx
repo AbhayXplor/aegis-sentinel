@@ -1,42 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import {
+    Activity,
+    ArrowUpRight,
+    CreditCard,
+    Lock,
+    ShieldCheck,
+    Wallet,
+    Plus
+} from "lucide-react";
 import { PageHeader } from "../PageHeader";
-import { WalletStatus } from "../WalletStatus";
+import { MetricCard } from "../dashboard/MetricCard";
 import { TreasuryChart } from "../dashboard/TreasuryChart";
 import { AllocationChart } from "../dashboard/AllocationChart";
-import { MetricCard } from "../dashboard/MetricCard";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, ShieldCheck, CreditCard, Lock } from "lucide-react";
-import { getEthPrice } from "@/lib/price";
+import { WalletStatus } from "../WalletStatus";
+import { MOCK_TOKEN_ADDRESS, SUPPORTED_TOKENS } from "@/lib/constants";
 
 interface DashboardViewProps {
+    isConnected: boolean;
+    userAddress: string | null;
     balance: string;
     ethBalance: string;
     vaultBalance: string;
-    userAddress: string | null;
-    isConnected: boolean;
     isRealMode: boolean;
-    isPaused: boolean;
-    setIsPaused: (paused: boolean) => void;
-    demoPhase: number;
-    connectWallet?: () => void;
-    disconnectWallet?: () => void;
+    connectWallet: () => void;
+    disconnectWallet: () => void;
 }
 
 export function DashboardView(props: DashboardViewProps) {
+    const [ethPrice, setEthPrice] = useState<number>(2450);
+    const [isMinting, setIsMinting] = useState(false);
     const showRealData = props.isConnected;
-    const [ethPrice, setEthPrice] = useState<number>(2500); // Default fallback
 
+    // Mock ETH Price fetch
     useEffect(() => {
+        const getEthPrice = async () => {
+            try {
+                const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
+                const data = await res.json();
+                return parseFloat(data.price);
+            } catch (e) {
+                return 2450;
+            }
+        };
+
         getEthPrice().then(price => {
             if (price > 0) setEthPrice(price);
         });
     }, []);
 
     // Calculate Totals
-    const mneeVal = parseFloat(props.balance);
+    const aegisVal = parseFloat(props.balance);
     const ethVal = parseFloat(props.ethBalance);
-    const totalAssets = ((ethVal * ethPrice) + (mneeVal * 1)).toFixed(2);
+    const totalAssets = ((ethVal * ethPrice) + (aegisVal * 1)).toFixed(2);
 
     // Chart Data Logic
     const currentMonth = new Date().toLocaleString('default', { month: 'short' });
@@ -53,13 +70,11 @@ export function DashboardView(props: DashboardViewProps) {
             const dateName = months[dateIndex];
 
             // Create a realistic looking curve ending at finalValue
-            // Random variance between -10% and +10% of the trend line
-            const trendFactor = 1 - (i * 0.05); // Linear growth trend
-            const variance = 0.9 + Math.random() * 0.2; // 0.9 to 1.1
+            const trendFactor = 1 - (i * 0.05);
+            const variance = 0.9 + Math.random() * 0.2;
 
             let value = finalValue * trendFactor * variance;
 
-            // Ensure the last point matches exactly (or very close) to current total
             if (i === 0) value = finalValue;
 
             history.push({ date: dateName, value: Math.round(value) });
@@ -69,7 +84,6 @@ export function DashboardView(props: DashboardViewProps) {
 
     const mockHistory = generateMockHistory(parseFloat(totalAssets));
 
-    // Real Mode: If we don't have history, show just the current point or empty
     const realHistory = [
         { date: currentMonth, value: parseFloat(totalAssets) }
     ];
@@ -77,11 +91,10 @@ export function DashboardView(props: DashboardViewProps) {
     const chartData = props.isRealMode ? realHistory : mockHistory;
 
     const allocationData = [
-        { name: 'MNEE', value: mneeVal },
-        { name: 'ETH', value: ethVal * ethPrice }, // Value in USD
+        { name: 'Tokens', value: aegisVal },
+        { name: 'ETH', value: ethVal * ethPrice },
     ];
 
-    // Fallback for empty wallet
     const displayAllocation = allocationData[0].value === 0 && allocationData[1].value === 0
         ? [{ name: 'Empty', value: 1 }]
         : allocationData;
@@ -134,14 +147,6 @@ export function DashboardView(props: DashboardViewProps) {
                                     )}
                                 </div>
                             </div>
-                            <div className="flex gap-2">
-                                <select className="bg-white/5 border border-white/10 text-slate-400 text-xs rounded-lg px-3 py-1.5 outline-none">
-                                    <option>All Sectors</option>
-                                </select>
-                                <select className="bg-white/5 border border-white/10 text-slate-400 text-xs rounded-lg px-3 py-1.5 outline-none">
-                                    <option>This Month</option>
-                                </select>
-                            </div>
                         </div>
                         <TreasuryChart data={chartData} isRealMode={props.isRealMode} />
                     </div>
@@ -150,9 +155,7 @@ export function DashboardView(props: DashboardViewProps) {
                     <div className="col-span-12 md:col-span-4">
                         <MetricCard
                             title="Total Assets"
-                            value={`$${parseFloat(totalAssets) >= 1000000
-                                ? (parseFloat(totalAssets) / 1000000).toFixed(2) + 'M'
-                                : (parseFloat(totalAssets) / 1000).toFixed(1) + 'K'}`}
+                            value={`$${parseFloat(totalAssets).toLocaleString()}`}
                             subValue="Across all networks"
                             icon={<CreditCard className="w-5 h-5" />}
                         />
@@ -169,7 +172,6 @@ export function DashboardView(props: DashboardViewProps) {
                         <div className="h-full bg-[#0B1121] border border-white/5 rounded-2xl p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-slate-400 text-sm font-medium">Recent Activity</h3>
-                                <button className="text-blue-400 text-xs hover:text-blue-300">View All</button>
                             </div>
                             <div className="space-y-4">
                                 {props.isRealMode ? (
@@ -191,9 +193,6 @@ export function DashboardView(props: DashboardViewProps) {
                                                     <div className="text-sm text-white font-medium">{item.name}</div>
                                                     <div className="text-xs text-slate-500">{item.time}</div>
                                                 </div>
-                                            </div>
-                                            <div className="text-xs text-slate-400">
-                                                {item.status === 'success' ? '+15 days' : item.status === 'pending' ? '-3 days' : '1 days'}
                                             </div>
                                         </div>
                                     ))
@@ -224,22 +223,27 @@ export function DashboardView(props: DashboardViewProps) {
                                     <h4 className="text-sm font-bold text-white mb-1">How to Test Demo Mode</h4>
                                     <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside">
                                         <li>Switch your wallet to <strong>Sepolia Testnet</strong>.</li>
-                                        <li>Click <strong>Mint Demo MNEE</strong> below to get test tokens.</li>
-                                        <li>Go to <strong>Settings</strong> to deposit MNEE into the Vault.</li>
+                                        <li>Click <strong>Mint Demo Tokens</strong> below to get test tokens.</li>
+                                        <li>Go to <strong>Settings</strong> to deposit tokens into the Vault.</li>
                                         <li>Run the <strong>Payroll Agent</strong> to see automated payments.</li>
                                     </ol>
                                     <button
                                         onClick={async () => {
-                                            const { mintMNEE } = await import("@/lib/blockchain");
-                                            const { MOCK_MNEE_ADDRESS } = await import("@/lib/constants");
-                                            if (MOCK_MNEE_ADDRESS) {
-                                                await mintMNEE(MOCK_MNEE_ADDRESS, "10000");
-                                                window.location.reload(); // Refresh to see balance
+                                            const { mintTokens } = await import("@/lib/blockchain");
+                                            setIsMinting(true);
+                                            try {
+                                                await mintTokens(MOCK_TOKEN_ADDRESS, "10000");
+                                                window.location.reload();
+                                            } catch (e) {
+                                                console.error(e);
+                                            } finally {
+                                                setIsMinting(false);
                                             }
                                         }}
-                                        className="mt-3 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors"
+                                        disabled={isMinting}
+                                        className="mt-3 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
                                     >
-                                        Mint 10,000 Demo MNEE
+                                        {isMinting ? "Minting..." : "Mint 10,000 Demo Tokens"}
                                     </button>
                                 </div>
                             </div>
@@ -255,54 +259,58 @@ export function DashboardView(props: DashboardViewProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="text-sm">
-                                    <tr className="border-b border-white/5 group hover:bg-white/[0.02]">
-                                        <td className="py-4 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                                <Activity className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <div className="text-white font-medium">Ethereum (Wallet)</div>
-                                                <div className="text-xs text-slate-500">{props.ethBalance} ETH</div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 text-white font-medium">${(parseFloat(props.ethBalance) * ethPrice).toFixed(2)}</td>
-                                        <td className="py-4 text-right text-emerald-400 font-medium">
-                                            {parseFloat(totalAssets) > 0
-                                                ? `${((parseFloat(props.ethBalance) * ethPrice / parseFloat(totalAssets)) * 100).toFixed(2)}%`
-                                                : "0.00%"}
-                                        </td>
-                                    </tr>
-                                    <tr className="border-b border-white/5 group hover:bg-white/[0.02]">
-                                        <td className="py-4 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                                <ShieldCheck className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <div className="text-white font-medium">MNEE (Wallet)</div>
-                                                <div className="text-xs text-slate-500">{props.balance} MNEE</div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 text-white font-medium">${props.balance}</td>
-                                        <td className="py-4 text-right text-emerald-400 font-medium">
-                                            {parseFloat(totalAssets) > 0
-                                                ? `${((parseFloat(props.balance) * 1 / parseFloat(totalAssets)) * 100).toFixed(2)}%`
-                                                : "0.00%"}
-                                        </td>
-                                    </tr>
+                                    {/* Dynamic Asset List */}
+                                    {SUPPORTED_TOKENS.map((token) => {
+                                        // For now, we only have real balances for ETH and MNEE (mocked in props)
+                                        // In a real app, we would fetch balances for all these tokens
+                                        // For this hackathon, we will show 0.00 for others or mock data if needed
+
+                                        let balance = "0.00";
+                                        let value = 0;
+                                        let percent = "0.00%";
+
+                                        if (token.symbol === "ETH") {
+                                            balance = props.ethBalance;
+                                            value = parseFloat(props.ethBalance) * ethPrice;
+                                        } else if (token.symbol === "AEGIS") {
+                                            balance = props.balance;
+                                            value = parseFloat(props.balance); // Stablecoin $1
+                                        }
+
+                                        if (parseFloat(totalAssets) > 0) {
+                                            percent = `${(value / parseFloat(totalAssets) * 100).toFixed(2)}%`;
+                                        }
+
+                                        return (
+                                            <tr key={token.symbol} className="border-b border-white/5 group hover:bg-white/[0.02]">
+                                                <td className="py-4 flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-white/10">
+                                                        <span className="text-[10px] font-bold">{token.symbol}</span>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-white font-medium">{token.name}</div>
+                                                        <div className="text-xs text-slate-500">{balance} {token.symbol}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 text-white font-medium">${value.toFixed(2)}</td>
+                                                <td className="py-4 text-right text-emerald-400 font-medium">{percent}</td>
+                                            </tr>
+                                        );
+                                    })}
+
+                                    {/* Vault Row (Special Case) */}
                                     <tr className="border-b border-white/5 group hover:bg-white/[0.02]">
                                         <td className="py-4 flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
                                                 <Lock className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <div className="text-white font-medium">MNEE (Vault)</div>
-                                                <div className="text-xs text-slate-500">{props.vaultBalance} MNEE</div>
+                                                <div className="text-white font-medium">Aegis Vault</div>
+                                                <div className="text-xs text-slate-500">{props.vaultBalance} AEGIS</div>
                                             </div>
                                         </td>
                                         <td className="py-4 text-white font-medium">${props.vaultBalance}</td>
-                                        <td className="py-4 text-right text-emerald-400 font-medium">
-                                            -
-                                        </td>
+                                        <td className="py-4 text-right text-emerald-400 font-medium">-</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -312,10 +320,6 @@ export function DashboardView(props: DashboardViewProps) {
                     <div className="col-span-12 md:col-span-4 bg-[#0B1121] border border-white/5 rounded-2xl p-6">
                         <h3 className="text-white font-bold mb-6">Asset Allocation</h3>
                         <AllocationChart data={displayAllocation} isRealMode={props.isRealMode} />
-                        <div className="flex justify-center gap-2 mt-4">
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        </div>
                     </div>
                 </div>
             ) : (

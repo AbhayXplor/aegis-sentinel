@@ -31,7 +31,7 @@ export async function parsePolicyIntent(userInput: string): Promise<PolicyIntent
       - Anthropic Credits: 0x5555555555555555555555555555555555555555
       - AWS Infrastructure: 0x6666666666666666666666666666666666666666
       - Deel Payroll: 0x7777777777777777777777777777777777777777
-      - MNEE Token: 0x469470675401b92f1D7f1e83B4660FE51026746e
+      - Generic Stablecoin: 0x469470675401b92f1D7f1e83B4660FE51026746e
       
       KNOWN SELECTORS:
       - swap(uint256): 0x2e1a7d4d
@@ -44,10 +44,7 @@ export async function parsePolicyIntent(userInput: string): Promise<PolicyIntent
       1. Determine if the user wants to allow a specific FUNCTION, whitelist a RECIPIENT, or set a SPENDING_LIMIT.
       2. If whitelisting a recipient (e.g., "Allow payments to OpenAI"), set type to "RECIPIENT" and target to the recipient address.
       3. If allowing a function (e.g., "Allow Uniswap swaps"), set type to "FUNCTION", target to the contract address, and selector to the 4-byte hex.
-      4. If setting a spending limit (e.g., "Limit spending to 100 MNEE per week"), set type to "SPENDING_LIMIT".
-         - Target: Token address (default to MNEE if not specified).
-         - Amount: The numeric amount (e.g., "100").
-         - Period: The duration in seconds (e.g., Week = 604800, Month = 2592000, Day = 86400).
+      4. If setting a spending limit (e.g., "Limit spending to 100 USDC per week"), set type to "SPENDING_LIMIT".
       5. Assign a Risk Score (0-100).
       
       Return ONLY a JSON object.
@@ -64,7 +61,7 @@ export async function parsePolicyIntent(userInput: string): Promise<PolicyIntent
         "target": "0x4694...",
         "amount": "100",
         "period": 604800,
-        "description": "Limit spending to 100 MNEE per week",
+        "description": "Limit spending to 100 tokens per week",
         "riskScore": 20
       }
     `;

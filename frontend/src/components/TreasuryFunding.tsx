@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Wallet, ArrowRight, Loader2 } from "lucide-react";
+import { Wallet, ArrowRight, Loader2, ChevronDown } from "lucide-react";
 import { depositToVault } from "@/lib/blockchain";
 
-import { MOCK_MNEE_ADDRESS, REAL_MNEE_ADDRESS } from "@/lib/constants";
+import { MOCK_TOKEN_ADDRESS, REAL_TOKEN_ADDRESS, SUPPORTED_TOKENS } from "@/lib/constants";
 
 export function TreasuryFunding({ isRealMode }: { isRealMode?: boolean }) {
     const [amount, setAmount] = useState("");
+    const [selectedToken, setSelectedToken] = useState(SUPPORTED_TOKENS[0]);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleDeposit = async () => {
@@ -13,11 +14,13 @@ export function TreasuryFunding({ isRealMode }: { isRealMode?: boolean }) {
 
         setIsLoading(true);
         const AEGIS_ADDRESS = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
-        // Use Real address if in Real Mode, otherwise Mock
-        const MNEE_ADDRESS = isRealMode ? REAL_MNEE_ADDRESS : MOCK_MNEE_ADDRESS;
 
-        if (AEGIS_ADDRESS && MNEE_ADDRESS) {
-            const success = await depositToVault(AEGIS_ADDRESS, MNEE_ADDRESS, amount, isRealMode);
+        // Use selected token address
+        const TOKEN_ADDRESS = selectedToken.address;
+
+        if (AEGIS_ADDRESS && TOKEN_ADDRESS) {
+            // Pass decimals to depositToVault
+            const success = await depositToVault(AEGIS_ADDRESS, TOKEN_ADDRESS, amount, selectedToken.decimals, isRealMode);
             if (success) {
                 alert("Deposit successful!");
                 setAmount("");
@@ -34,25 +37,39 @@ export function TreasuryFunding({ isRealMode }: { isRealMode?: boolean }) {
                 </div>
                 <div>
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Treasury Funding</h3>
-                    <p className="text-[10px] text-slate-500 font-medium">Deposit MNEE to Aegis Vault</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Deposit tokens to Aegis Vault</p>
                 </div>
             </div>
 
             <div className="space-y-4">
                 <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">
-                        Amount (MNEE)
+                        Asset & Amount
                     </label>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="e.g. 5000"
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 transition-all font-mono"
-                        />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">
-                            MNEE
+                    <div className="flex gap-2">
+                        <div className="relative w-28">
+                            <select
+                                value={selectedToken.symbol}
+                                onChange={(e) => {
+                                    const token = SUPPORTED_TOKENS.find(t => t.symbol === e.target.value);
+                                    if (token) setSelectedToken(token);
+                                }}
+                                className="w-full h-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-8 text-sm text-white font-bold focus:outline-none focus:border-purple-500/50 cursor-pointer"
+                            >
+                                {SUPPORTED_TOKENS.map(token => (
+                                    <option key={token.symbol} value={token.symbol}>{token.symbol}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                        </div>
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="e.g. 5000"
+                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 transition-all font-mono"
+                            />
                         </div>
                     </div>
                 </div>
@@ -68,7 +85,7 @@ export function TreasuryFunding({ isRealMode }: { isRealMode?: boolean }) {
                         </>
                     ) : (
                         <>
-                            Deposit Funds <ArrowRight className="w-3 h-3" />
+                            Deposit {selectedToken.symbol} <ArrowRight className="w-3 h-3" />
                         </>
                     )}
                 </button>

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Bot, Sparkles, Bell, CheckCircle, ArrowRight, Loader2, Lock, Play, Pause, Settings, Plus, Trash2, Clock } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 import { agentWallet } from "@/lib/agentWallet";
 import { checkAgentStatus, executeTransferWithAgent } from "@/lib/blockchain";
-import { REAL_MNEE_ADDRESS } from "@/lib/constants";
+import { REAL_TOKEN_ADDRESS, MOCK_TOKEN_ADDRESS } from "@/lib/constants";
 import { AgentAuthorizationModal } from "./AgentAuthorizationModal";
 import { AgentSettingsModal } from "./AgentSettingsModal";
 import { ethers } from "ethers";
@@ -25,14 +25,12 @@ interface PayrollAgentProps {
     isRealMode?: boolean;
 }
 
-// ... (existing imports)
-
 export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
     const [rules, setRules] = useState<PaymentRule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAgentAuthorized, setIsAgentAuthorized] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [showAddStreamModal, setShowAddStreamModal] = useState(false); // New State
+    const [showAddStreamModal, setShowAddStreamModal] = useState(false);
     const [isExecuting, setIsExecuting] = useState(false);
     const [executionStatus, setExecutionStatus] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState(false);
@@ -40,7 +38,7 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
         checkFrequency: 60,
         maxTransactionLimit: "10000",
         retryAttempts: 3,
-        enabled: false
+        enabled: true
     });
 
     useEffect(() => {
@@ -48,17 +46,66 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
         verifyAgent();
     }, [isRealMode]);
 
+    // Payroll Execution Loop
+    useEffect(() => {
+        if (!isAgentAuthorized || !agentSettings.enabled) return;
+
+        const interval = setInterval(async () => {
+            if (isExecuting) return;
+            await processRules();
+        }, 10000); // Check every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [isAgentAuthorized, agentSettings.enabled, rules, isExecuting]);
+
+    const processRules = async () => {
+        setIsExecuting(true);
+        const AEGIS_ADDRESS = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
+
+        if (!AEGIS_ADDRESS) {
+            setIsExecuting(false);
+            return;
+        }
+
+        for (const rule of rules) {
+            if (rule.status === 'active') {
+                try {
+                    setExecutionStatus(`Auditing ${rule.name}...`);
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    setExecutionStatus(`Executing ${rule.name}...`);
+
+                    const TOKEN_ADDRESS = isRealMode ? REAL_TOKEN_ADDRESS : MOCK_TOKEN_ADDRESS;
+
+                    const txHash = await executeTransferWithAgent(AEGIS_ADDRESS, TOKEN_ADDRESS, rule.recipient, rule.amount, isRealMode);
+
+                    if (txHash) {
+                        console.log("Executed:", txHash);
+                        setExecutionStatus(`Success: ${txHash.slice(0, 6)}...`);
+                        await new Promise(r => setTimeout(r, 2000));
+                    } else {
+                        setExecutionStatus("Failed");
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    setExecutionStatus("Error");
+                }
+            }
+        }
+        setExecutionStatus(null);
+        setIsExecuting(false);
+    };
+
     const loadRules = () => {
         setIsLoading(true);
         if (!isRealMode) {
-            // Mock Rules for Demo Mode
             setRules([
                 { id: '1', name: 'Daily API Costs', amount: '10.00', frequency: 'Daily', recipient: '0x71C...9A21', status: 'active', nextRun: 'Today, 11:00 PM' },
                 { id: '2', name: 'Weekly Contractor Payout', amount: '100.00', frequency: 'Weekly', recipient: '0x3D2...1B4C', status: 'paused', nextRun: 'Mon, 9:00 AM' },
                 { id: '3', name: 'Monthly Server Rent', amount: '450.00', frequency: 'Monthly', recipient: '0x8F4...2C9D', status: 'active', nextRun: 'Feb 1st' }
             ]);
         } else {
-            // Real Mode: Fetch from Supabase or LocalStorage (Empty for now)
             setRules([]);
         }
         setIsLoading(false);
@@ -68,7 +115,7 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
         const address = agentWallet.getAddress();
         const AEGIS_ADDRESS = process.env.NEXT_PUBLIC_AEGIS_GUARD_ADDRESS;
         if (address && AEGIS_ADDRESS) {
-            const isAuth = await checkAgentStatus(AEGIS_ADDRESS, address, true);
+            const isAuth = await checkAgentStatus(AEGIS_ADDRESS, address, isRealMode);
             setIsAgentAuthorized(isAuth);
         }
     };
@@ -87,8 +134,6 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
 
     return (
         <div className="bg-gradient-to-br from-indigo-900/50 to-blue-900/50 border border-blue-500/30 rounded-2xl p-6 relative overflow-hidden group">
-            {/* ... (Header and Background Glow remain same) ... */}
-            {/* Background Glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
             <div className="relative z-10">
@@ -119,7 +164,6 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
                     </div>
                 </div>
 
-                {/* Rules List */}
                 <div className="space-y-3 mb-6">
                     {rules.length > 0 ? (
                         rules.map((rule) => (
@@ -141,7 +185,7 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
                                 <div className="flex items-center gap-4">
                                     <div className="text-right">
                                         <p className="text-sm font-bold text-white">${rule.amount}</p>
-                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest">MNEE</p>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest">Tokens</p>
                                     </div>
                                     <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                                         <button
@@ -183,7 +227,7 @@ export function PayrollAgent({ isRealMode = false }: PayrollAgentProps) {
                         setShowAuthModal(false);
                         setIsAgentAuthorized(true);
                     }}
-                    isRealMode={true}
+                    isRealMode={isRealMode}
                 />
             )}
 

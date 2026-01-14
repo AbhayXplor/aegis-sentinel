@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { MneeLogo } from "./MneeLogo";
+import { TokenLogo } from "./TokenLogo";
 
 export function AuthorizedOperations() {
     const [authorizedOps, setAuthorizedOps] = useState<any[]>([]);
@@ -83,7 +83,7 @@ export function AuthorizedOperations() {
                                 <div className="text-right">
                                     <div className="flex items-center justify-end gap-1.5">
                                         <span className="text-xs font-bold text-emerald-400">{op.value}</span>
-                                        <MneeLogo className="w-3 h-3" />
+                                        <TokenLogo className="w-3 h-3" />
                                     </div>
                                     <div className="text-[10px] text-slate-600">{op.timestamp}</div>
                                 </div>

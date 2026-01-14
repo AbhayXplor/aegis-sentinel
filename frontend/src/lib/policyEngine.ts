@@ -11,9 +11,9 @@ export const DEFAULT_POLICIES: PolicyRule[] = [
     {
         id: 'max_transaction_limit',
         name: 'Max Transaction Limit',
-        description: 'Prevents transfers over 5,000 MNEE',
+        description: 'Prevents transfers over 5,000 tokens',
         validate: (amount: number) => amount <= 5000,
-        errorMessage: 'Transaction exceeds the 5,000 MNEE limit.'
+        errorMessage: 'Transaction exceeds the 5,000 tokens limit.'
     },
     {
         id: 'suspicious_address_check',

@@ -30,11 +30,15 @@ export function ActivityFeed() {
     useEffect(() => {
         // 1. Fetch Initial Data
         const fetchInitial = async () => {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('transactions')
                 .select('*')
                 .order('created_at', { ascending: false })
                 .limit(50);
+
+            if (error) {
+                console.error("[ActivityFeed] Error fetching transactions:", error);
+            }
             if (data) setTransactions(data);
         };
         fetchInitial();
@@ -103,7 +107,7 @@ export function ActivityFeed() {
                                         <ShieldAlert className="w-3 h-3 text-red-500" />
                                     )}
                                     <span className={`font-bold ${tx.status === "SUCCESS" ? "text-emerald-500" : tx.status === "WARNING" ? "text-yellow-500" : "text-red-500"}`}>
-                                        {tx.status === "SUCCESS" ? "AUTHORIZED" : tx.status === "WARNING" ? "QUARANTINED" : "BLOCKED"}
+                                        {tx.status === "SUCCESS" ? "VERIFIED" : tx.status === "WARNING" ? "QUARANTINED" : "BLOCKED"}
                                     </span>
                                     <span className="text-gray-500 opacity-30">|</span>
                                     <span className="text-gray-400 opacity-50 text-[9px]">{tx.function_selector}</span>
@@ -128,14 +132,14 @@ export function ActivityFeed() {
                                 </div>
                                 {tx.value && (
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-zinc-500 text-[9px]">Amount:</span> <span className="text-white font-bold">{tx.value} MNEE</span>
+                                        <span className="text-zinc-500 text-[9px]">Amount:</span> <span className="text-white font-bold">{tx.value} Crypto</span>
                                     </div>
                                 )}
                             </div>
 
                             {tx.ai_analysis && (
                                 <div className="mt-1.5 pl-4.5 text-[9px] text-gray-500 border-l border-white/10 pl-2 leading-tight">
-                                    <span className="text-cyber-cyan opacity-60 font-bold">AI_AUDIT:</span> {tx.ai_analysis}
+                                    <span className="text-cyber-cyan opacity-60 font-bold">POLICY STATUS:</span> {tx.ai_analysis}
                                 </div>
                             )}
                         </motion.div>

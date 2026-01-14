@@ -21,10 +21,10 @@ export async function auditTransaction(target: string, selector: string, amount:
       TRANSACTION DETAILS:
       - Target Contract: ${target}
       - Function: ${selector}
-      - Amount: ${amount} MNEE
+      - Amount: ${amount} Tokens
       
       Analyze this transaction for potential risks:
-      1. Is the amount unusually high for a single transaction? (Assume 1000+ MNEE is high risk).
+      1. Is the amount unusually high for a single transaction? (Assume 1000+ tokens is high risk).
       2. Is the target contract a known protocol or a suspicious address?
       3. Does the function signature look like a standard DeFi operation or something dangerous (e.g., selfdestruct, transferOwnership)?
       
