@@ -5,6 +5,7 @@ import { Send, Shield, CheckCircle, AlertTriangle, Loader2, Mic, Trash2 } from "
 import { motion, AnimatePresence } from "framer-motion";
 import { parsePolicyIntent, PolicyIntent } from "@/lib/policyParser";
 import { supabase } from "@/lib/supabase";
+import { setPolicy, setSpendingLimit, whitelistRecipient } from "@/lib/blockchain";
 
 interface StoredPolicy extends PolicyIntent {
     id: number;
