@@ -3,11 +3,14 @@
 import { Home, DollarSign, Shield, Activity, Settings } from "lucide-react";
 
 interface SidebarProps {
-    activeTab: string;
-    setActiveTab: (tab: string) => void;
+    currentView: string;
+    setCurrentView: (view: string) => void;
+    isRealMode: boolean;
+    setIsRealMode: (real: boolean) => void;
+    demoProps?: any;
 }
 
-export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export function Sidebar({ currentView, setCurrentView, isRealMode, setIsRealMode, demoProps }: SidebarProps) {
     const menuItems = [
         { id: 'dashboard', label: 'Overview', icon: Home },
         { id: 'payroll', label: 'Payroll', icon: DollarSign },
@@ -25,7 +28,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                     </div>
                     <div>
                         <span className="font-bold text-lg tracking-tight text-white block">Aegis</span>
-                        <span className="text-[10px] text-slate-400 uppercase tracking-widest">Financial Guard</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-widest text-cyber-cyan">Sentinel</span>
                     </div>
                 </div>
             </div>
@@ -34,11 +37,11 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             <nav className="flex-1 px-4 py-6 space-y-2">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = activeTab === item.id;
+                    const isActive = currentView === item.id;
                     return (
                         <button
                             key={item.id}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => setCurrentView(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${isActive
                                 ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                                 : "text-slate-400 hover:text-white hover:bg-white/5"
