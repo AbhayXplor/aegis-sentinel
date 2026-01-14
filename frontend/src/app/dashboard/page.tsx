@@ -113,7 +113,12 @@ export default function Dashboard() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 flex font-sans selection:bg-blue-500/30">
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Sidebar
+                currentView={activeTab}
+                setCurrentView={setActiveTab}
+                isRealMode={isRealMode}
+                setIsRealMode={handleModeToggle}
+            />
 
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Top Header */}
